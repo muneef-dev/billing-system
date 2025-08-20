@@ -13,6 +13,7 @@ import com.example.billingsystem.entity.Order;
 import com.example.billingsystem.entity.OrderItem;
 import com.example.billingsystem.util.KeyGenerator;
 
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -161,11 +162,30 @@ public class OrderBoImpl implements OrderBo {
     }
 
     @Override
+    public int getOrderCount() throws SQLException, ClassNotFoundException {
+        return orderDao.getOrderCount();
+    }
+
+    @Override
+    public BigDecimal getTotalRevenue() throws SQLException, ClassNotFoundException {
+        return orderDao.getTotalRevenue();
+    }
+
+    @Override
     public List<OrderDto> getRecentOrders(int limit) throws SQLException, ClassNotFoundException {
         List<Order> orders = orderDao.getRecentOrders(limit);
         return convertToDtoList(orders);
     }
 
+    @Override
+    public List<Object[]> getMonthlySalesData() throws SQLException, ClassNotFoundException {
+        return orderDao.getMonthlySalesData();
+    }
+
+    @Override
+    public List<Object[]> getTopSellingItems(int limit) throws SQLException, ClassNotFoundException {
+        return orderDao.getTopSellingItems(limit);
+    }
 
     public List<OrderItemDto> getOrderItems(String orderId) throws SQLException, ClassNotFoundException {
         List<OrderItem> items = orderItemDao.findByOrderId(orderId);

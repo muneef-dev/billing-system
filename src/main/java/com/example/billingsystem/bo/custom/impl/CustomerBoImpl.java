@@ -65,6 +65,11 @@ public class CustomerBoImpl implements CustomerBo {
     }
 
     @Override
+    public int getCustomerCount() throws SQLException, ClassNotFoundException {
+        return 0;
+    }
+
+    @Override
     public List<CustomerDto> getAllCustomers() throws SQLException, ClassNotFoundException {
         List<Customer> customers = customerDao.loadAll();
         return convertToDtoList(customers);

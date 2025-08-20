@@ -83,6 +83,15 @@ public class CustomerDaoImpl implements CustomerDao {
         return extractCustomersFromResultSet(resultSet);
     }
 
+    @Override
+    public int getCustomerCount() throws SQLException, ClassNotFoundException {
+        ResultSet resultSet = CrudUtil.execute("SELECT COUNT(*) FROM customers");
+        if (resultSet.next()) {
+            return resultSet.getInt(1);
+        }
+        return 0;
+    }
+
     private Customer extractCustomerFromResultSet(ResultSet resultSet) throws SQLException {
         return new Customer(
                 resultSet.getString("id"),

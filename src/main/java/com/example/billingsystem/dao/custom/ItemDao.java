@@ -11,4 +11,5 @@ public interface ItemDao extends CrudDao<Item, String> {
     List<Item> searchItems(String searchTerm) throws SQLException, ClassNotFoundException;
     boolean updateStock(String id, int quantity) throws SQLException, ClassNotFoundException;
     Item find(String id) throws SQLException, ClassNotFoundException;
+    int getItemCount() throws SQLException, ClassNotFoundException;
 }

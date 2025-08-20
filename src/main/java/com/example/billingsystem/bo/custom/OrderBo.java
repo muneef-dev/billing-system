@@ -4,6 +4,7 @@ import com.example.billingsystem.bo.SuperBo;
 import com.example.billingsystem.dto.OrderDto;
 import com.example.billingsystem.dto.OrderItemDto;
 
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -15,7 +16,13 @@ public interface OrderBo extends SuperBo {
     List<OrderDto> getAllOrders() throws SQLException, ClassNotFoundException;
     List<OrderDto> searchOrders(String searchTerm) throws SQLException, ClassNotFoundException;
     List<OrderDto> getOrdersByCustomer(String customerId) throws SQLException, ClassNotFoundException;
-    List<OrderDto> getRecentOrders(int limit) throws SQLException, ClassNotFoundException;
     List<OrderItemDto> getOrderItems(String orderId) throws SQLException, ClassNotFoundException;
     String generateOrderNumber() throws SQLException, ClassNotFoundException;
+
+    // New methods for dashboard
+    int getOrderCount() throws SQLException, ClassNotFoundException;
+    BigDecimal getTotalRevenue() throws SQLException, ClassNotFoundException;
+    List<OrderDto> getRecentOrders(int limit) throws SQLException, ClassNotFoundException;
+    List<Object[]> getMonthlySalesData() throws SQLException, ClassNotFoundException;
+    List<Object[]> getTopSellingItems(int limit) throws SQLException, ClassNotFoundException;
 }

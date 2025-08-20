@@ -67,6 +67,11 @@ public class ItemBoImpl implements ItemBo {
     }
 
     @Override
+    public int getItemCount() throws SQLException, ClassNotFoundException {
+        return 0;
+    }
+
+    @Override
     public List<ItemDto> getAllItems() throws SQLException, ClassNotFoundException {
         List<Item> items = itemDao.loadAll();
         return convertToDtoList(items);

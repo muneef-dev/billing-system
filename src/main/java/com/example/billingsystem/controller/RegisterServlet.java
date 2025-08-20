@@ -80,7 +80,7 @@ public class RegisterServlet extends HttpServlet {
 
                 HttpSession session = request.getSession();
                 session.setAttribute("user", userDto);
-                response.sendRedirect("/dashboard.jsp");
+                response.sendRedirect(request.getContextPath() + "/dashboard");
             } else {
                 logger.log(Level.WARNING, "Failed to create user: {0}", username);
 

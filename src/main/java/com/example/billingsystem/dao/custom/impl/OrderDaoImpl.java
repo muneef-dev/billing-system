@@ -5,6 +5,7 @@ import com.example.billingsystem.dao.CrudUtil;
 import com.example.billingsystem.dao.custom.OrderDao;
 import com.example.billingsystem.entity.Order;
 
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -107,6 +108,73 @@ public class OrderDaoImpl implements OrderDao {
                 "LEFT JOIN customers c ON o.customer_id = c.id " +
                 "ORDER BY o.order_date DESC LIMIT ?", limit);
         return extractOrdersFromResultSet(resultSet);
+    }
+
+    @Override
+    public int getOrderCount() throws SQLException, ClassNotFoundException {
+        ResultSet resultSet = CrudUtil.execute("SELECT COUNT(*) FROM orders");
+        if (resultSet.next()) {
+            return resultSet.getInt(1);
+        }
+        return 0;
+    }
+
+    @Override
+    public BigDecimal getTotalRevenue() throws SQLException, ClassNotFoundException {
+        ResultSet resultSet = CrudUtil.execute("SELECT COALESCE(SUM(total_amount), 0) FROM orders");
+        if (resultSet.next()) {
+            return resultSet.getBigDecimal(1);
+        }
+        return BigDecimal.ZERO;
+    }
+
+    @Override
+    public List<Object[]> getMonthlySalesData() throws SQLException, ClassNotFoundException {
+        List<Object[]> monthlySales = new ArrayList<>();
+        ResultSet resultSet = CrudUtil.execute(
+            "SELECT MONTH(order_date) as month, YEAR(order_date) as year, " +
+            "SUM(total_amount) as total_sales " +
+            "FROM orders " +
+            "WHERE order_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH) " +
+            "GROUP BY YEAR(order_date), MONTH(order_date) " +
+            "ORDER BY year, month"
+        );
+
+        while (resultSet.next()) {
+            monthlySales.add(new Object[] {
+                resultSet.getInt("month"),
+                resultSet.getInt("year"),
+                resultSet.getBigDecimal("total_sales")
+            });
+        }
+
+        return monthlySales;
+    }
+
+    @Override
+    public List<Object[]> getTopSellingItems(int limit) throws SQLException, ClassNotFoundException {
+        List<Object[]> topItems = new ArrayList<>();
+        ResultSet resultSet = CrudUtil.execute(
+            "SELECT i.id, i.name, i.item_code, SUM(oi.quantity) as total_sold, " +
+            "SUM(oi.subtotal) as total_revenue " +
+            "FROM order_items oi " +
+            "JOIN items i ON oi.item_id = i.id " +
+            "GROUP BY i.id, i.name, i.item_code " +
+            "ORDER BY total_sold DESC " +
+            "LIMIT ?", limit
+        );
+
+        while (resultSet.next()) {
+            topItems.add(new Object[] {
+                resultSet.getString("id"),
+                resultSet.getString("name"),
+                resultSet.getString("item_code"),
+                resultSet.getInt("total_sold"),
+                resultSet.getBigDecimal("total_revenue")
+            });
+        }
+
+        return topItems;
     }
 
     private Order extractOrderFromResultSet(ResultSet rs) throws SQLException {

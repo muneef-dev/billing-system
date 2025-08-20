@@ -64,7 +64,7 @@ public class LoginServlet extends HttpServlet {
 
             HttpSession session = request.getSession();
             session.setAttribute("user", userOptional.get());
-            response.sendRedirect("/dashboard.jsp");
+            response.sendRedirect(request.getContextPath() + "/dashboard");
         } else {
             logger.log(Level.WARNING, "Login failed for username: {0}", username);
 
