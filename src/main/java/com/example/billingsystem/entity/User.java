@@ -4,6 +4,7 @@ import java.sql.Timestamp;
 public class User {
     private String id;
     private String username;
+    private String email;
     private String password;
     private String role;
     private Timestamp createdAt;
@@ -12,9 +13,10 @@ public class User {
     public User() {
     }
 
-    public User(String id, String username, String password, String role, Timestamp createdAt, Timestamp lastLogin) {
+    public User(String id, String username, String email, String password, String role, Timestamp createdAt, Timestamp lastLogin) {
         this.id = id;
         this.username = username;
+        this.email = email;
         this.password = password;
         this.role = role;
         this.createdAt = createdAt;
@@ -43,6 +45,14 @@ public class User {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getPassword() {
@@ -74,6 +84,7 @@ public class User {
         return "User{" +
                 "id='" + id + '\'' +
                 ", username='" + username + '\'' +
+                ", email='" + email + '\'' +
                 ", password='" + password + '\'' +
                 ", role='" + role + '\'' +
                 ", createdAt=" + createdAt +

@@ -10,10 +10,10 @@
                 <div class="mb-4">
                     <div class="flex items-center space-x-2 mb-2">
                         <i class="fa-solid fa-user text-secondary"></i>
-                        <label for="username" class="form-label">Username</label>
+                        <label for="usernameOrEmail" class="form-label">Email or Username</label>
                     </div>
-                    <input type="text" id="username" name="username" value="moha1234"
-                           class="form-input" required>
+                    <input type="text" id="usernameOrEmail" name="usernameOrEmail" value="moha1234"
+                           class="form-input" required placeholder="Enter your email or username">
                 </div>
                 <div class="mb-4">
                     <div class="flex items-center space-x-2 mb-2">

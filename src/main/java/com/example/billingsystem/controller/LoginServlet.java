@@ -45,30 +45,30 @@ public class LoginServlet extends HttpServlet {
     }
 
     private void handleLogin(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        String username = request.getParameter("username");
+        String usernameOrEmail = request.getParameter("usernameOrEmail");
         String password = request.getParameter("password");
 
-        if (username != null) {
-            username = username.trim().toLowerCase();
+        if (usernameOrEmail != null) {
+            usernameOrEmail = usernameOrEmail.trim().toLowerCase();
         }
 
         if (password != null) {
             password = password.trim();
         }
 
-        logger.log(Level.INFO, "Login attempt for username: {0}", username);
+        logger.log(Level.INFO, "Login attempt for username/email: {0}", usernameOrEmail);
 
-        Optional<UserDto> userOptional = userBo.authenticateUser(username, password);
+        Optional<UserDto> userOptional = userBo.authenticateUser(usernameOrEmail, password);
         if (userOptional.isPresent()) {
-            logger.log(Level.INFO, "Login successful for user: {0}", username);
+            logger.log(Level.INFO, "Login successful for user: {0}", usernameOrEmail);
 
             HttpSession session = request.getSession();
             session.setAttribute("user", userOptional.get());
             response.sendRedirect(request.getContextPath() + "/dashboard");
         } else {
-            logger.log(Level.WARNING, "Login failed for username: {0}", username);
+            logger.log(Level.WARNING, "Login failed for username/email: {0}", usernameOrEmail);
 
-            request.setAttribute("error", "Invalid username or password");
+            request.setAttribute("error", "Invalid username/email or password");
             request.getRequestDispatcher("/login.jsp").forward(request, response);
         }
     }

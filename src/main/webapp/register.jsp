@@ -9,11 +9,19 @@
             <form action="/auth/register" method="POST">
                 <div class="mb-4">
                     <div class="flex items-center space-x-2 mb-2">
+                        <i class="fa-solid fa-envelope text-secondary"></i>
+                        <label for="email" class="form-label">Email</label>
+                    </div>
+                    <input type="email" id="email" name="email"
+                           class="form-input" required placeholder="Enter your email address">
+                </div>
+                <div class="mb-4">
+                    <div class="flex items-center space-x-2 mb-2">
                         <i class="fa-solid fa-user text-secondary"></i>
-                        <label for="username" class="form-label">Username</label>
+                        <label for="username" class="form-label">Username (Optional)</label>
                     </div>
                     <input type="text" id="username" name="username"
-                           class="form-input" required>
+                           class="form-input" placeholder="Enter a username (optional)">
                 </div>
                 <div class="mb-4">
                     <div class="flex items-center space-x-2 mb-2">
@@ -32,6 +40,11 @@
                         <option value="user">User</option>
                         <option value="admin">Admin</option>
                     </select>
+                </div>
+                <div class="text-danger text-sm mb-4">
+                    <c:if test="${not empty requestScope.error}">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>${requestScope.error}
+                    </c:if>
                 </div>
                 <button type="submit" class="btn btn-primary w-full mb-4">
                     <i class="fas fa-user-plus mr-2"></i>Create Account

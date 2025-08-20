@@ -47,12 +47,22 @@ public class RegisterServlet extends HttpServlet {
     }
 
     private void handleRegistration(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        String email = request.getParameter("email");
         String username = request.getParameter("username");
         String password = request.getParameter("password");
         String role = request.getParameter("role");
 
-        if (username != null) {
+        if (email != null) {
+            email = email.trim().toLowerCase();
+        }
+
+        if (username != null && !username.trim().isEmpty()) {
             username = username.trim().toLowerCase();
+        } else {
+            // If username is not provided, generate one from email
+            if (email != null && !email.isEmpty()) {
+                username = email.split("@")[0]; // Use the part before @ as username
+            }
         }
 
         if (password != null) {
@@ -63,12 +73,26 @@ public class RegisterServlet extends HttpServlet {
             role = role.trim();
         }
 
-        logger.log(Level.INFO, "Registration attempt for username: {0}", username);
+        logger.log(Level.INFO, "Registration attempt for email: {0}, username: {1}", new Object[]{email, username});
+
+        // Validate required fields
+        if (email == null || email.isEmpty()) {
+            request.setAttribute("error", "Email is required");
+            request.getRequestDispatcher("/register.jsp").forward(request, response);
+            return;
+        }
+
+        if (password == null || password.isEmpty()) {
+            request.setAttribute("error", "Password is required");
+            request.getRequestDispatcher("/register.jsp").forward(request, response);
+            return;
+        }
 
         try {
             UserDto userDto = new UserDto();
             userDto.setId(KeyGenerator.generateId());
-            logger.log(Level.INFO, "Generated Id", userDto.getId());
+            logger.log(Level.INFO, "Generated Id: {0}", userDto.getId());
+            userDto.setEmail(email);
             userDto.setUsername(username);
             userDto.setPassword(PasswordManager.encryptPassword(password));
             userDto.setRole(role);
@@ -76,19 +100,34 @@ public class RegisterServlet extends HttpServlet {
 
             boolean isCreated = userBo.createUser(userDto);
             if (isCreated) {
-                logger.log(Level.INFO, "User registered successfully: {0}", username);
+                logger.log(Level.INFO, "User registered successfully: {0}", email);
 
                 HttpSession session = request.getSession();
                 session.setAttribute("user", userDto);
                 response.sendRedirect(request.getContextPath() + "/dashboard");
             } else {
-                logger.log(Level.WARNING, "Failed to create user: {0}", username);
+                logger.log(Level.WARNING, "Failed to create user: {0}", email);
 
-                request.setAttribute("error", "Failed to create account. Please try again.");
+                // Check specific reasons for failure
+                UserBo userBoCheck = BoFactory.getInstance().getBo(BoFactory.BoType.USER);
+                try {
+                    // Check if it's an email duplicate
+                    if (userBoCheck.authenticateUser(email, "dummy").isPresent()) {
+                        request.setAttribute("error", "Email address is already registered. Please use a different email or try logging in.");
+                    } else if (username != null && !username.trim().isEmpty() &&
+                              userBoCheck.authenticateUser(username, "dummy").isPresent()) {
+                        request.setAttribute("error", "Username is already taken. Please choose a different username.");
+                    } else {
+                        request.setAttribute("error", "Failed to create account. Please try again.");
+                    }
+                } catch (Exception e) {
+                    request.setAttribute("error", "Email address is already registered or username is already taken.");
+                }
+
                 request.getRequestDispatcher("/register.jsp").forward(request, response);
             }
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "Error creating user: " + username, e);
+            logger.log(Level.SEVERE, "Error creating user: " + email, e);
             throw e;
         }
     }
