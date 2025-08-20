@@ -101,4 +101,15 @@ public class UserBoImpl implements UserBo {
         }
         return null;
     }
+
+    @Override
+    public UserDto findUserById(String id) throws SQLException, ClassNotFoundException {
+        User user = userDao.findById(id);
+        if (user != null) {
+            return new UserDto(
+                    user.getId(), user.getUsername(), user.getEmail(), user.getPassword(), user.getRole(), user.getCreatedAt(), user.getLastLogin()
+            );
+        }
+        return null;
+    }
 }

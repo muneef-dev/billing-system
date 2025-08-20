@@ -46,12 +46,12 @@
                         <a href="${pageContext.request.contextPath}/profile"
                            class="flex items-center px-4 py-2 text-sm text-primary hover:bg-secondary transition-colors">
                             <i class="fas fa-user mr-3 text-secondary"></i>
-                            <span>Profile Settings</span>
+                            <span>Profile</span>
                         </a>
                         <a href="${pageContext.request.contextPath}/settings"
                            class="flex items-center px-4 py-2 text-sm text-primary hover:bg-secondary transition-colors">
                             <i class="fas fa-cog mr-3 text-secondary"></i>
-                            <span>Preferences</span>
+                            <span>Settings</span>
                         </a>
                         <div class="border-t border-color my-2"></div>
                         <a href="${pageContext.request.contextPath}/auth/logout"

@@ -83,6 +83,23 @@ public class UserDaoImpl implements UserDao {
     }
 
     @Override
+    public User findById(String id) throws SQLException, ClassNotFoundException {
+        ResultSet resultSet = CrudUtil.execute("SELECT * FROM users WHERE id=?", id);
+        if (resultSet.next()) {
+            return new User(
+                    resultSet.getString("id"),
+                    resultSet.getString("username"),
+                    resultSet.getString("email"),
+                    resultSet.getString("password"),
+                    resultSet.getString("user_role"),
+                    resultSet.getTimestamp("created_at"),
+                    resultSet.getTimestamp("last_login")
+            );
+        }
+        return null;
+    }
+
+    @Override
     public boolean existsByEmail(String email) throws SQLException, ClassNotFoundException {
         ResultSet resultSet = CrudUtil.execute("SELECT COUNT(*) FROM users WHERE email=?", email);
         if (resultSet.next()) {
