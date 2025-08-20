@@ -32,6 +32,15 @@
                     <i class="fas fa-sign-in-alt mr-2"></i>Login
                 </button>
             </form>
+
+            <!-- Forgot Password Link -->
+            <div class="text-center mb-4">
+                <a href="${pageContext.request.contextPath}/forgot-password.jsp"
+                   class="text-secondary hover:text-primary transition-colors text-sm">
+                    <i class="fas fa-key mr-1"></i>Forgot your password?
+                </a>
+            </div>
+
             <div class="text-center">
                 <a href="/register.jsp" class="text-primary hover:text-primary-hover transition-colors">
                     <i class="fas fa-user-plus mr-2"></i>Create a new account

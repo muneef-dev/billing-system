@@ -7,23 +7,45 @@ public class OrderDto {
     private String id;
     private String orderNumber;
     private String customerId;
-    private String customerName; // For display purposes
+    private String customerName; // Add customerName field
+    private BigDecimal subtotal;
+    private BigDecimal discountAmount;
     private BigDecimal totalAmount;
-    private String status;
-    private Timestamp orderDate;
+    private String status; // Pending, Paid, Cancelled
+    private Timestamp createdAt;
+    private Timestamp updatedAt;
 
     public OrderDto() {
     }
 
+    public OrderDto(String id, String orderNumber, String customerId, BigDecimal subtotal,
+                   BigDecimal discountAmount, BigDecimal totalAmount, String status,
+                   Timestamp createdAt, Timestamp updatedAt) {
+        this.id = id;
+        this.orderNumber = orderNumber;
+        this.customerId = customerId;
+        this.subtotal = subtotal;
+        this.discountAmount = discountAmount;
+        this.totalAmount = totalAmount;
+        this.status = status;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
+    // Add constructor with customerName
     public OrderDto(String id, String orderNumber, String customerId, String customerName,
-                   BigDecimal totalAmount, String status, Timestamp orderDate) {
+                   BigDecimal subtotal, BigDecimal discountAmount, BigDecimal totalAmount,
+                   String status, Timestamp createdAt, Timestamp updatedAt) {
         this.id = id;
         this.orderNumber = orderNumber;
         this.customerId = customerId;
         this.customerName = customerName;
+        this.subtotal = subtotal;
+        this.discountAmount = discountAmount;
         this.totalAmount = totalAmount;
         this.status = status;
-        this.orderDate = orderDate;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     // Getters and Setters
@@ -59,6 +81,22 @@ public class OrderDto {
         this.customerName = customerName;
     }
 
+    public BigDecimal getSubtotal() {
+        return subtotal;
+    }
+
+    public void setSubtotal(BigDecimal subtotal) {
+        this.subtotal = subtotal;
+    }
+
+    public BigDecimal getDiscountAmount() {
+        return discountAmount;
+    }
+
+    public void setDiscountAmount(BigDecimal discountAmount) {
+        this.discountAmount = discountAmount;
+    }
+
     public BigDecimal getTotalAmount() {
         return totalAmount;
     }
@@ -75,11 +113,19 @@ public class OrderDto {
         this.status = status;
     }
 
-    public Timestamp getOrderDate() {
-        return orderDate;
+    public Timestamp getCreatedAt() {
+        return createdAt;
     }
 
-    public void setOrderDate(Timestamp orderDate) {
-        this.orderDate = orderDate;
+    public void setCreatedAt(Timestamp createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Timestamp getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Timestamp updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

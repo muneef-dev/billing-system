@@ -18,14 +18,17 @@ public class OrderDaoImpl implements OrderDao {
     @Override
     public boolean create(Order order) throws SQLException, ClassNotFoundException {
         Logger.getLogger(UserDaoImpl.class.getName()).log(Level.INFO, "OrderBo Executing SQL with ID: " + order.getId());
-        return CrudUtil.execute("INSERT INTO orders (id, order_number, customer_id, order_date, total_amount, status) " +
-                        "VALUES (?, ?, ?, ?, ?, ?)",
+        return CrudUtil.execute("INSERT INTO orders (id, order_number, customer_id, subtotal, discount_amount, total_amount, status, created_at, updated_at) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 order.getId(),
                 order.getOrderNumber(),
                 order.getCustomerId(),
-                order.getOrderDate(),
+                order.getSubtotal(),
+                order.getDiscountAmount(),
                 order.getTotalAmount(),
-                order.getStatus()
+                order.getStatus(),
+                order.getCreatedAt(),
+                order.getUpdatedAt()
         );
     }
 
@@ -36,10 +39,14 @@ public class OrderDaoImpl implements OrderDao {
 
     @Override
     public boolean update(Order order) throws SQLException, ClassNotFoundException {
-        return CrudUtil.execute("UPDATE orders SET customer_id=?, total_amount=?, status=? WHERE id=?",
+        return CrudUtil.execute("UPDATE orders SET order_number=?, customer_id=?, subtotal=?, discount_amount=?, total_amount=?, status=?, updated_at=? WHERE id=?",
+                order.getOrderNumber(),
                 order.getCustomerId(),
+                order.getSubtotal(),
+                order.getDiscountAmount(),
                 order.getTotalAmount(),
                 order.getStatus(),
+                order.getUpdatedAt(),
                 order.getId()
         );
     }
@@ -66,7 +73,7 @@ public class OrderDaoImpl implements OrderDao {
         ResultSet resultSet = CrudUtil.execute("SELECT o.*, c.name as customer_name " +
                 "FROM orders o " +
                 "LEFT JOIN customers c ON o.customer_id = c.id " +
-                "ORDER BY o.order_date DESC");
+                "ORDER BY o.created_at DESC");
         return extractOrdersFromResultSet(resultSet);
     }
 
@@ -86,7 +93,7 @@ public class OrderDaoImpl implements OrderDao {
                 "FROM orders o " +
                 "LEFT JOIN customers c ON o.customer_id = c.id " +
                 "WHERE o.customer_id = ? " +
-                "ORDER BY o.order_date DESC", customerId);
+                "ORDER BY o.created_at DESC", customerId);
         return extractOrdersFromResultSet(resultSet);
     }
 
@@ -97,7 +104,7 @@ public class OrderDaoImpl implements OrderDao {
                 "FROM orders o " +
                 "LEFT JOIN customers c ON o.customer_id = c.id " +
                 "WHERE o.order_number LIKE ? OR c.name LIKE ? " +
-                "ORDER BY o.order_date DESC", searchTerm, searchTerm);
+                "ORDER BY o.created_at DESC", searchTerm, searchTerm);
         return extractOrdersFromResultSet(resultSet);
     }
 
@@ -106,7 +113,7 @@ public class OrderDaoImpl implements OrderDao {
         ResultSet resultSet = CrudUtil.execute("SELECT o.*, c.name as customer_name " +
                 "FROM orders o " +
                 "LEFT JOIN customers c ON o.customer_id = c.id " +
-                "ORDER BY o.order_date DESC LIMIT ?", limit);
+                "ORDER BY o.created_at DESC LIMIT ?", limit);
         return extractOrdersFromResultSet(resultSet);
     }
 
@@ -132,11 +139,11 @@ public class OrderDaoImpl implements OrderDao {
     public List<Object[]> getMonthlySalesData() throws SQLException, ClassNotFoundException {
         List<Object[]> monthlySales = new ArrayList<>();
         ResultSet resultSet = CrudUtil.execute(
-            "SELECT MONTH(order_date) as month, YEAR(order_date) as year, " +
+            "SELECT MONTH(created_at) as month, YEAR(created_at) as year, " +
             "SUM(total_amount) as total_sales " +
             "FROM orders " +
-            "WHERE order_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH) " +
-            "GROUP BY YEAR(order_date), MONTH(order_date) " +
+            "WHERE created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH) " +
+            "GROUP BY YEAR(created_at), MONTH(created_at) " +
             "ORDER BY year, month"
         );
 
@@ -155,11 +162,11 @@ public class OrderDaoImpl implements OrderDao {
     public List<Object[]> getTopSellingItems(int limit) throws SQLException, ClassNotFoundException {
         List<Object[]> topItems = new ArrayList<>();
         ResultSet resultSet = CrudUtil.execute(
-            "SELECT i.id, i.name, i.item_code, SUM(oi.quantity) as total_sold, " +
-            "SUM(oi.subtotal) as total_revenue " +
+            "SELECT i.id, i.item_name, i.item_code, SUM(oi.quantity) as total_sold, " +
+            "SUM(oi.total_price) as total_revenue " +
             "FROM order_items oi " +
             "JOIN items i ON oi.item_id = i.id " +
-            "GROUP BY i.id, i.name, i.item_code " +
+            "GROUP BY i.id, i.item_name, i.item_code " +
             "ORDER BY total_sold DESC " +
             "LIMIT ?", limit
         );
@@ -167,7 +174,7 @@ public class OrderDaoImpl implements OrderDao {
         while (resultSet.next()) {
             topItems.add(new Object[] {
                 resultSet.getString("id"),
-                resultSet.getString("name"),
+                resultSet.getString("item_name"),
                 resultSet.getString("item_code"),
                 resultSet.getInt("total_sold"),
                 resultSet.getBigDecimal("total_revenue")
@@ -178,16 +185,17 @@ public class OrderDaoImpl implements OrderDao {
     }
 
     private Order extractOrderFromResultSet(ResultSet rs) throws SQLException {
-        Order order = new Order(
+        return new Order(
                 rs.getString("id"),
                 rs.getString("order_number"),
                 rs.getString("customer_id"),
-                rs.getTimestamp("order_date"),
+                rs.getBigDecimal("subtotal"),
+                rs.getBigDecimal("discount_amount"),
                 rs.getBigDecimal("total_amount"),
-                rs.getString("status")
+                rs.getString("status"),
+                rs.getTimestamp("created_at"),
+                rs.getTimestamp("updated_at")
         );
-        order.setCustomerName(rs.getString("customer_name")); // Set the customer name from join
-        return order;
     }
 
     private List<Order> extractOrdersFromResultSet(ResultSet rs) throws SQLException {

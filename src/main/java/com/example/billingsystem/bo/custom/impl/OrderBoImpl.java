@@ -12,6 +12,7 @@ import com.example.billingsystem.dto.OrderItemDto;
 import com.example.billingsystem.entity.Order;
 import com.example.billingsystem.entity.OrderItem;
 import com.example.billingsystem.util.KeyGenerator;
+import com.example.billingsystem.util.GeneratorUtil;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
@@ -28,18 +29,39 @@ public class OrderBoImpl implements OrderBo {
 
     @Override
     public String createOrder(OrderDto orderDto, List<OrderItemDto> items) throws SQLException, ClassNotFoundException {
+        // Generate ID if not provided
+        if (orderDto.getId() == null || orderDto.getId().trim().isEmpty()) {
+            orderDto.setId(KeyGenerator.generateId());
+        }
+
+        // Generate order number if not provided
+        if (orderDto.getOrderNumber() == null || orderDto.getOrderNumber().trim().isEmpty()) {
+            orderDto.setOrderNumber(GeneratorUtil.generateOrderNumber());
+        }
+
+        // Validate order status enum values according to schema: ('Pending', 'Paid', 'Cancelled')
+        if (orderDto.getStatus() != null) {
+            String status = orderDto.getStatus();
+            if (!status.equals("Pending") && !status.equals("Paid") && !status.equals("Cancelled")) {
+                orderDto.setStatus("Pending"); // Default to Pending if invalid status
+            }
+        } else {
+            orderDto.setStatus("Pending"); // Default status from schema
+        }
+
         Logger.getLogger(OrderBoImpl.class.getName()).log(Level.INFO, "OrderBoImpl creating order with ID: " + orderDto.getId());
-        String orderNumber = generateOrderNumber();
-        orderDto.setOrderNumber(orderNumber);
 
         // Create order
         Order order = new Order(
                 orderDto.getId(),
                 orderDto.getOrderNumber(),
                 orderDto.getCustomerId(),
-                orderDto.getOrderDate(),
+                orderDto.getSubtotal(),
+                orderDto.getDiscountAmount(),
                 orderDto.getTotalAmount(),
-                orderDto.getStatus()
+                orderDto.getStatus(),
+                new java.sql.Timestamp(System.currentTimeMillis()),
+                new java.sql.Timestamp(System.currentTimeMillis())
         );
 
         boolean orderCreated = orderDao.create(order);
@@ -71,7 +93,7 @@ public class OrderBoImpl implements OrderBo {
             throw new SQLException("Failed to create order items");
         }
 
-        return orderNumber;
+        return orderDto.getOrderNumber();
     }
 
     @Override
@@ -87,9 +109,12 @@ public class OrderBoImpl implements OrderBo {
                 orderDto.getId(),
                 orderDto.getOrderNumber(),
                 orderDto.getCustomerId(),
-                orderDto.getOrderDate(),
+                orderDto.getSubtotal(),
+                orderDto.getDiscountAmount(),
                 orderDto.getTotalAmount(),
-                orderDto.getStatus()
+                orderDto.getStatus(),
+                new java.sql.Timestamp(System.currentTimeMillis()),
+                new java.sql.Timestamp(System.currentTimeMillis())
         );
 
         boolean orderUpdated = orderDao.update(order);
@@ -108,7 +133,7 @@ public class OrderBoImpl implements OrderBo {
                     item.getItemId(),
                     item.getQuantity(),
                     item.getUnitPrice(),
-                    item.getSubtotal()
+                    item.getTotalPrice()
             );
             orderItems.add(orderItem);
         }
@@ -202,10 +227,12 @@ public class OrderBoImpl implements OrderBo {
                 order.getId(),
                 order.getOrderNumber(),
                 order.getCustomerId(),
-                order.getCustomerName(),
+                order.getSubtotal(),
+                order.getDiscountAmount(),
                 order.getTotalAmount(),
                 order.getStatus(),
-                order.getOrderDate()
+                order.getCreatedAt(),
+                order.getUpdatedAt()
         );
     }
 
@@ -222,11 +249,9 @@ public class OrderBoImpl implements OrderBo {
                 item.getId(),
                 item.getOrderId(),
                 item.getItemId(),
-                item.getItemName(),
-                item.getItemCode(),
                 item.getQuantity(),
                 item.getUnitPrice(),
-                item.getSubtotal()
+                item.getTotalPrice()
         );
     }
 

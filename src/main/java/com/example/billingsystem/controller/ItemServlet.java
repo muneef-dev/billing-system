@@ -3,7 +3,6 @@ package com.example.billingsystem.controller;
 import com.example.billingsystem.bo.BoFactory;
 import com.example.billingsystem.bo.custom.ItemBo;
 import com.example.billingsystem.dto.ItemDto;
-import com.example.billingsystem.util.KeyGenerator;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -90,30 +89,49 @@ public class ItemServlet extends HttpServlet {
     }
 
     private void handleCreateItem(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        String code = request.getParameter("code");
-        String name = request.getParameter("name");
-        String priceStr = request.getParameter("price");
+        String name = request.getParameter("itemName");
+        String category = request.getParameter("category");
+        String author = request.getParameter("author");
+        String publisher = request.getParameter("publisher");
+        String description = request.getParameter("description");
+        String unitPriceStr = request.getParameter("unitPrice");
+        String costPriceStr = request.getParameter("costPrice");
         String stockQuantityStr = request.getParameter("stockQuantity");
+        String minStockStr = request.getParameter("minimumStockLevel");
 
         // Validate required fields
-        if (code == null || name == null || priceStr == null || stockQuantityStr == null) {
-            request.setAttribute("error", "All fields are required");
+        if (name == null || name.trim().isEmpty() ||
+            unitPriceStr == null || unitPriceStr.trim().isEmpty() ||
+            stockQuantityStr == null || stockQuantityStr.trim().isEmpty()) {
+            request.setAttribute("error", "Name, unit price, and stock quantity are required");
             handleNewItemForm(request, response);
             return;
         }
 
-        ItemDto itemDto = new ItemDto();
-        itemDto.setId(KeyGenerator.generateId());
-        itemDto.setItemCode(code.trim());
-        itemDto.setName(name.trim());
-        itemDto.setPrice(new BigDecimal(priceStr.trim()));
-        itemDto.setStockQuantity(Integer.parseInt(stockQuantityStr.trim()));
+        try {
+            ItemDto itemDto = new ItemDto();
+            itemDto.setItemName(name.trim());
+            itemDto.setCategory(category != null ? category.trim() : "");
+            itemDto.setAuthor(author != null ? author.trim() : "");
+            itemDto.setPublisher(publisher != null ? publisher.trim() : "");
+            itemDto.setDescription(description != null ? description.trim() : "");
+            itemDto.setUnitPrice(new BigDecimal(unitPriceStr.trim()));
+            itemDto.setCostPrice(costPriceStr != null && !costPriceStr.trim().isEmpty() ?
+                               new BigDecimal(costPriceStr.trim()) : BigDecimal.ZERO);
+            itemDto.setStockQuantity(Integer.parseInt(stockQuantityStr.trim()));
+            itemDto.setMinimumStockLevel(minStockStr != null && !minStockStr.trim().isEmpty() ?
+                                       Integer.parseInt(minStockStr.trim()) : 10);
+            itemDto.setActive(true);
 
-        if (itemBo.createItem(itemDto)) {
-            response.sendRedirect(request.getContextPath() + "/items");
-        } else {
-            request.setAttribute("error", "Failed to create item");
-            request.setAttribute("item", itemDto);
+            if (itemBo.createItem(itemDto)) {
+                response.sendRedirect(request.getContextPath() + "/items");
+            } else {
+                request.setAttribute("error", "Failed to create item");
+                request.setAttribute("item", itemDto);
+                handleNewItemForm(request, response);
+            }
+        } catch (NumberFormatException e) {
+            request.setAttribute("error", "Invalid number format in price or quantity fields");
             handleNewItemForm(request, response);
         }
     }
@@ -121,28 +139,47 @@ public class ItemServlet extends HttpServlet {
     private void handleUpdateItem(HttpServletRequest request, HttpServletResponse response, String id) throws Exception {
         ItemDto itemDto = itemBo.getItem(id);
         if (itemDto != null) {
-            String code = request.getParameter("code");
-            String name = request.getParameter("name");
-            String priceStr = request.getParameter("price");
+            String name = request.getParameter("itemName");
+            String category = request.getParameter("category");
+            String author = request.getParameter("author");
+            String publisher = request.getParameter("publisher");
+            String description = request.getParameter("description");
+            String unitPriceStr = request.getParameter("unitPrice");
+            String costPriceStr = request.getParameter("costPrice");
             String stockQuantityStr = request.getParameter("stockQuantity");
+            String minStockStr = request.getParameter("minimumStockLevel");
 
             // Validate required fields
-            if (code == null || name == null || priceStr == null || stockQuantityStr == null) {
-                request.setAttribute("error", "All fields are required");
+            if (name == null || name.trim().isEmpty() ||
+                unitPriceStr == null || unitPriceStr.trim().isEmpty() ||
+                stockQuantityStr == null || stockQuantityStr.trim().isEmpty()) {
+                request.setAttribute("error", "Name, unit price, and stock quantity are required");
                 handleEditItemForm(request, response, id);
                 return;
             }
 
-            itemDto.setItemCode(code.trim());
-            itemDto.setName(name.trim());
-            itemDto.setPrice(new BigDecimal(priceStr.trim()));
-            itemDto.setStockQuantity(Integer.parseInt(stockQuantityStr.trim()));
+            try {
+                itemDto.setItemName(name.trim());
+                itemDto.setCategory(category != null ? category.trim() : "");
+                itemDto.setAuthor(author != null ? author.trim() : "");
+                itemDto.setPublisher(publisher != null ? publisher.trim() : "");
+                itemDto.setDescription(description != null ? description.trim() : "");
+                itemDto.setUnitPrice(new BigDecimal(unitPriceStr.trim()));
+                itemDto.setCostPrice(costPriceStr != null && !costPriceStr.trim().isEmpty() ?
+                                   new BigDecimal(costPriceStr.trim()) : BigDecimal.ZERO);
+                itemDto.setStockQuantity(Integer.parseInt(stockQuantityStr.trim()));
+                itemDto.setMinimumStockLevel(minStockStr != null && !minStockStr.trim().isEmpty() ?
+                                           Integer.parseInt(minStockStr.trim()) : 10);
 
-            if (itemBo.updateItem(itemDto)) {
-                response.sendRedirect(request.getContextPath() + "/items");
-            } else {
-                request.setAttribute("error", "Failed to update item");
-                request.setAttribute("item", itemDto);
+                if (itemBo.updateItem(itemDto)) {
+                    response.sendRedirect(request.getContextPath() + "/items");
+                } else {
+                    request.setAttribute("error", "Failed to update item");
+                    request.setAttribute("item", itemDto);
+                    handleEditItemForm(request, response, id);
+                }
+            } catch (NumberFormatException e) {
+                request.setAttribute("error", "Invalid number format in price or quantity fields");
                 handleEditItemForm(request, response, id);
             }
         } else {

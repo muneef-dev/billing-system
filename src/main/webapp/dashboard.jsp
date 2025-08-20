@@ -20,7 +20,7 @@
                     </div>
                     <div class="ml-4">
                         <h2 class="text-sm font-medium text-secondary">Total Orders</h2>
-                        <p class="text-2xl font-semibold text-primary">${totalOrders}</p>
+                        <p class="text-2xl font-semibold text-primary">${totalOrders != null ? totalOrders : 0}</p>
                     </div>
                 </div>
             </div>
@@ -33,7 +33,7 @@
                     </div>
                     <div class="ml-4">
                         <h2 class="text-sm font-medium text-secondary">Total Items</h2>
-                        <p class="text-2xl font-semibold text-primary">${totalItems}</p>
+                        <p class="text-2xl font-semibold text-primary">${totalItems != null ? totalItems : 0}</p>
                     </div>
                 </div>
             </div>
@@ -46,7 +46,7 @@
                     </div>
                     <div class="ml-4">
                         <h2 class="text-sm font-medium text-secondary">Total Customers</h2>
-                        <p class="text-2xl font-semibold text-primary">${totalCustomers}</p>
+                        <p class="text-2xl font-semibold text-primary">${totalCustomers != null ? totalCustomers : 0}</p>
                     </div>
                 </div>
             </div>
@@ -60,7 +60,7 @@
                     <div class="ml-4">
                         <h2 class="text-sm font-medium text-secondary">Total Revenue</h2>
                         <p class="text-2xl font-semibold text-primary">
-                            <fmt:formatNumber value="${totalRevenue}" type="currency"/>
+                            <fmt:formatNumber value="${totalRevenue != null ? totalRevenue : 0}" type="currency"/>
                         </p>
                     </div>
                 </div>
@@ -105,37 +105,52 @@
                 </a>
             </div>
             <div class="overflow-x-auto">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Order Number</th>
-                            <th>Customer</th>
-                            <th>Amount</th>
-                            <th>Status</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <c:forEach var="order" items="${recentOrders}">
-                            <tr class="hover:bg-secondary transition-colors">
-                                <td class="font-medium text-primary">${order.orderNumber}</td>
-                                <td class="text-secondary">${order.customerName}</td>
-                                <td class="text-secondary">
-                                    <fmt:formatNumber value="${order.totalAmount}" type="currency"/>
-                                </td>
-                                <td>
-                                    <span class="badge ${order.status == 'completed' ? 'badge-success' :
-                                                       order.status == 'pending' ? 'badge-warning' : 'badge-danger'}">
-                                        ${order.status}
-                                    </span>
-                                </td>
-                                <td class="text-secondary">
-                                    <fmt:formatDate value="${order.orderDate}" pattern="MMM dd, yyyy"/>
-                                </td>
-                            </tr>
-                        </c:forEach>
-                    </tbody>
-                </table>
+                <c:choose>
+                    <c:when test="${not empty recentOrders}">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Order Number</th>
+                                    <th>Customer</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <c:forEach var="order" items="${recentOrders}">
+                                    <tr class="hover:bg-secondary transition-colors">
+                                        <td class="font-medium text-primary">${order.orderNumber}</td>
+                                        <td class="text-secondary">${order.customerName != null ? order.customerName : 'Customer ID: '.concat(order.customerId)}</td>
+                                        <td class="text-secondary">
+                                            <fmt:formatNumber value="${order.totalAmount}" type="currency"/>
+                                        </td>
+                                        <td>
+                                            <span class="badge ${order.status == 'completed' ? 'badge-success' :
+                                                               order.status == 'pending' ? 'badge-warning' : 'badge-danger'}">
+                                                ${order.status}
+                                            </span>
+                                        </td>
+                                        <td class="text-secondary">
+                                            <fmt:formatDate value="${order.createdAt}" pattern="MMM dd, yyyy"/>
+                                        </td>
+                                    </tr>
+                                </c:forEach>
+                            </tbody>
+                        </table>
+                    </c:when>
+                    <c:otherwise>
+                        <div class="text-center text-secondary py-8">
+                            <i class="fas fa-shopping-cart text-4xl mb-4 text-gray-300"></i>
+                            <div>No recent orders</div>
+                            <div class="text-sm mt-2">
+                                <a href="${pageContext.request.contextPath}/orders/new" class="text-primary hover:text-primary-hover">
+                                    Create your first order
+                                </a>
+                            </div>
+                        </div>
+                    </c:otherwise>
+                </c:choose>
             </div>
         </div>
     </jsp:attribute>

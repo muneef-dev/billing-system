@@ -4,6 +4,7 @@ import com.example.billingsystem.bo.BoFactory;
 import com.example.billingsystem.bo.custom.CustomerBo;
 import com.example.billingsystem.bo.custom.ItemBo;
 import com.example.billingsystem.bo.custom.OrderBo;
+import com.example.billingsystem.dto.CustomerDto;
 import com.example.billingsystem.dto.OrderDto;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -38,6 +39,21 @@ public class DashboardServlet extends HttpServlet {
 
             // Get recent orders (last 5)
             List<OrderDto> recentOrders = orderBo.getRecentOrders(5);
+
+            // Populate customer names for recent orders
+            for (OrderDto order : recentOrders) {
+                try {
+                    if (order.getCustomerId() != null) {
+                        CustomerDto customer = customerBo.getCustomer(order.getCustomerId());
+                        if (customer != null) {
+                            order.setCustomerName(customer.getName());
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "Error fetching customer name for order " + order.getId(), e);
+                    // Continue processing other orders even if one fails
+                }
+            }
 
             // Get monthly sales data for chart
             List<Object[]> monthlySalesData = orderBo.getMonthlySalesData();

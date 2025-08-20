@@ -22,4 +22,13 @@
         <url-pattern>/auth/logout</url-pattern>
     </servlet-mapping>
 
+    <servlet>
+        <servlet-name>HelpPage</servlet-name>
+        <jsp-file>/WEB-INF/views/help/help.jsp</jsp-file>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>HelpPage</servlet-name>
+        <url-pattern>/help</url-pattern>
+    </servlet-mapping>
+
 </web-app>

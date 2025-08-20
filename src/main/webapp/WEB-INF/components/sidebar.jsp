@@ -33,6 +33,12 @@
                     <span class="font-medium">Orders</span>
                 </a>
             </li>
+            <li class="rounded-lg hover:bg-sidebar-hover ${requestScope['javax.servlet.forward.servlet_path'].startsWith('/help') ? 'active bg-sidebar-active' : ''}">
+                <a href="${pageContext.request.contextPath}/help" class="flex items-center p-3 text-white rounded-lg transition-all">
+                    <i class="fas fa-question-circle mr-3 text-lg"></i>
+                    <span class="font-medium">Help</span>
+                </a>
+            </li>
         </ul>
     </nav>
 

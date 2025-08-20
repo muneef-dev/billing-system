@@ -9,7 +9,7 @@ public class BoFactory {
     }
 
     public enum BoType {
-        USER, CUSTOMER, ITEM, ORDER, ORDER_ITEM
+        USER, CUSTOMER, ITEM, ORDER, ORDER_ITEM, CATEGORY, PAYMENT, STOCK_MOVEMENT
     }
 
     public static BoFactory getInstance() {
@@ -28,6 +28,12 @@ public class BoFactory {
                 return (T) new OrderBoImpl();
             case ORDER_ITEM:
                 return (T) new OrderItemBoImpl();
+            case CATEGORY:
+                return (T) new CategoryBoImpl();
+            case PAYMENT:
+                return (T) new PaymentBoImpl();
+            case STOCK_MOVEMENT:
+                return (T) new StockMovementBoImpl();
             default:
                 return null;
         }

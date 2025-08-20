@@ -6,7 +6,7 @@ public class DaoFactory {
     private static DaoFactory daoFactory;
     private DaoFactory(){}
     public enum DaoType{
-        USER, CUSTOMER, ITEM, ORDER, ORDER_ITEM
+        USER, CUSTOMER, ITEM, ORDER, ORDER_ITEM, CATEGORY, PAYMENT, STOCK_MOVEMENT
     }
 
     public static DaoFactory getInstance(){
@@ -25,6 +25,12 @@ public class DaoFactory {
                 return (T) new OrderDaoImpl();
             case ORDER_ITEM:
                 return (T) new OrderItemDaoImpl();
+            case CATEGORY:
+                return (T) new CategoryDaoImpl();
+            case PAYMENT:
+                return (T) new PaymentDaoImpl();
+            case STOCK_MOVEMENT:
+                return (T) new StockMovementDaoImpl();
             default:
                 return null;
         }

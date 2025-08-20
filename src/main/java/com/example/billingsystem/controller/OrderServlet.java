@@ -8,7 +8,6 @@ import com.example.billingsystem.dto.OrderDto;
 import com.example.billingsystem.dto.OrderItemDto;
 import com.example.billingsystem.dto.CustomerDto;
 import com.example.billingsystem.dto.ItemDto;
-import com.example.billingsystem.util.KeyGenerator;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -17,7 +16,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -72,6 +70,21 @@ public class OrderServlet extends HttpServlet {
 
     private void handleListOrders(HttpServletRequest request, HttpServletResponse response) throws Exception {
         List<OrderDto> orders = orderBo.getAllOrders();
+
+        // Populate customer names for orders
+        for (OrderDto order : orders) {
+            try {
+                if (order.getCustomerId() != null) {
+                    CustomerDto customer = customerBo.getCustomer(order.getCustomerId());
+                    if (customer != null) {
+                        order.setCustomerName(customer.getName());
+                    }
+                }
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "Error fetching customer name for order " + order.getId(), e);
+            }
+        }
+
         request.setAttribute("orders", orders);
         request.getRequestDispatcher("/WEB-INF/views/order/list.jsp").forward(request, response);
     }
@@ -103,7 +116,34 @@ public class OrderServlet extends HttpServlet {
     private void handleViewOrder(HttpServletRequest request, HttpServletResponse response, String id) throws Exception {
         OrderDto order = orderBo.getOrder(id);
         if (order != null) {
+            // Populate customer name for the order
+            try {
+                if (order.getCustomerId() != null) {
+                    CustomerDto customer = customerBo.getCustomer(order.getCustomerId());
+                    if (customer != null) {
+                        order.setCustomerName(customer.getName());
+                    }
+                }
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "Error fetching customer name for order " + order.getId(), e);
+            }
+
             List<OrderItemDto> orderItems = orderBo.getOrderItems(id);
+
+            // Populate item names for order items
+            for (OrderItemDto orderItem : orderItems) {
+                try {
+                    if (orderItem.getItemId() != null) {
+                        ItemDto item = itemBo.getItem(orderItem.getItemId());
+                        if (item != null) {
+                            orderItem.setItemName(item.getItemName());
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "Error fetching item name for order item " + orderItem.getItemId(), e);
+                }
+            }
+
             request.setAttribute("order", order);
             request.setAttribute("orderItems", orderItems);
             request.getRequestDispatcher("/WEB-INF/views/order/view.jsp").forward(request, response);
@@ -116,6 +156,21 @@ public class OrderServlet extends HttpServlet {
         String term = request.getParameter("term");
         if (term != null && !term.trim().isEmpty()) {
             List<OrderDto> orders = orderBo.searchOrders(term.trim());
+
+            // Populate customer names for search results
+            for (OrderDto order : orders) {
+                try {
+                    if (order.getCustomerId() != null) {
+                        CustomerDto customer = customerBo.getCustomer(order.getCustomerId());
+                        if (customer != null) {
+                            order.setCustomerName(customer.getName());
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "Error fetching customer name for order " + order.getId(), e);
+                }
+            }
+
             request.setAttribute("orders", orders);
             request.setAttribute("searchTerm", term);
         }
@@ -124,25 +179,29 @@ public class OrderServlet extends HttpServlet {
 
     private void handleCreateOrder(HttpServletRequest request, HttpServletResponse response) throws Exception {
         OrderDto orderDto = new OrderDto();
-        orderDto.setId(KeyGenerator.generateId());
         orderDto.setCustomerId(request.getParameter("customerId"));
-        logger.log(Level.INFO, "Generated Id", orderDto.getId());
-        orderDto.setStatus("pending");
-        orderDto.setOrderDate(new Timestamp(System.currentTimeMillis()));
 
-        List<OrderItemDto> orderItems = processOrderItems(request, orderDto.getId());
+        // Fix order status to match schema enum: ('Pending', 'Paid', 'Cancelled')
+        orderDto.setStatus("Pending"); // Schema requires capitalized 'Pending', not 'pending'
+
+        List<OrderItemDto> orderItems = processOrderItems(request);
         if (orderItems.isEmpty()) {
             request.setAttribute("error", "Order must contain at least one item");
             handleNewOrderForm(request, response);
             return;
         }
 
-        BigDecimal totalAmount = calculateTotalAmount(orderItems);
+        BigDecimal subtotal = calculateSubtotal(orderItems);
+        BigDecimal discountAmount = calculateDiscount(request, subtotal);
+        BigDecimal totalAmount = subtotal.subtract(discountAmount);
+
+        orderDto.setSubtotal(subtotal);
+        orderDto.setDiscountAmount(discountAmount);
         orderDto.setTotalAmount(totalAmount);
 
         String orderNumber = orderBo.createOrder(orderDto, orderItems);
         if (orderNumber != null) {
-            response.sendRedirect(request.getContextPath() + "/orders/view/" + orderDto.getId());
+            response.sendRedirect(request.getContextPath() + "/orders");
         } else {
             request.setAttribute("error", "Failed to create order");
             handleNewOrderForm(request, response);
@@ -153,16 +212,41 @@ public class OrderServlet extends HttpServlet {
         OrderDto orderDto = orderBo.getOrder(id);
         if (orderDto != null) {
             orderDto.setCustomerId(request.getParameter("customerId"));
-            orderDto.setStatus(request.getParameter("status"));
 
-            List<OrderItemDto> orderItems = processOrderItems(request, orderDto.getId());
+            // Validate status parameter against schema enum values
+            String status = request.getParameter("status");
+            if (status != null) {
+                status = status.trim();
+                // Ensure status matches schema enum: ('Pending', 'Paid', 'Cancelled')
+                if (status.equals("Pending") || status.equals("Paid") || status.equals("Cancelled")) {
+                    orderDto.setStatus(status);
+                } else {
+                    // Convert common variations to proper schema values
+                    if (status.equalsIgnoreCase("pending")) {
+                        orderDto.setStatus("Pending");
+                    } else if (status.equalsIgnoreCase("paid") || status.equalsIgnoreCase("completed")) {
+                        orderDto.setStatus("Paid");
+                    } else if (status.equalsIgnoreCase("cancelled") || status.equalsIgnoreCase("canceled")) {
+                        orderDto.setStatus("Cancelled");
+                    } else {
+                        orderDto.setStatus("Pending"); // Default fallback
+                    }
+                }
+            }
+
+            List<OrderItemDto> orderItems = processOrderItems(request);
             if (orderItems.isEmpty()) {
                 request.setAttribute("error", "Order must contain at least one item");
                 handleEditOrderForm(request, response, id);
                 return;
             }
 
-            BigDecimal totalAmount = calculateTotalAmount(orderItems);
+            BigDecimal subtotal = calculateSubtotal(orderItems);
+            BigDecimal discountAmount = calculateDiscount(request, subtotal);
+            BigDecimal totalAmount = subtotal.subtract(discountAmount);
+
+            orderDto.setSubtotal(subtotal);
+            orderDto.setDiscountAmount(discountAmount);
             orderDto.setTotalAmount(totalAmount);
 
             if (orderBo.updateOrder(orderDto, orderItems)) {
@@ -184,45 +268,45 @@ public class OrderServlet extends HttpServlet {
         }
     }
 
-    private List<OrderItemDto> processOrderItems(HttpServletRequest request, String orderId) {
+    private List<OrderItemDto> processOrderItems(HttpServletRequest request) {
         List<OrderItemDto> orderItems = new ArrayList<>();
         String[] itemIds = request.getParameterValues("itemId[]");
         String[] quantities = request.getParameterValues("quantity[]");
-        String[] prices = request.getParameterValues("price[]");
+        String[] unitPrices = request.getParameterValues("unitPrice[]");
 
-        logger.log(Level.INFO, "Processing order items - Order ID: " + orderId);
-        logger.log(Level.INFO, "Item IDs from form: " + (itemIds != null ? String.join(", ", itemIds) : "null"));
-
-        if (itemIds != null && quantities != null && prices != null) {
+        if (itemIds != null && quantities != null && unitPrices != null) {
             for (int i = 0; i < itemIds.length; i++) {
-                if (!itemIds[i].isEmpty() && !quantities[i].isEmpty() && !prices[i].isEmpty()) {
+                if (i < quantities.length && i < unitPrices.length &&
+                    !itemIds[i].isEmpty() && !quantities[i].isEmpty() && !unitPrices[i].isEmpty()) {
+
                     OrderItemDto item = new OrderItemDto();
-                    String orderItemId = KeyGenerator.generateId(); // Generate ID only for the order item entry
-                    logger.log(Level.INFO, "Creating order item - Order Item ID: " + orderItemId +
-                        ", Order ID: " + orderId +
-                        ", Item ID (from form): " + itemIds[i]);
+                    item.setItemId(itemIds[i]);
+                    item.setQuantity(Integer.parseInt(quantities[i]));
+                    item.setUnitPrice(new BigDecimal(unitPrices[i]));
+                    item.setTotalPrice(item.getUnitPrice().multiply(new BigDecimal(item.getQuantity())));
 
-                    item.setId(orderItemId);
-                    item.setOrderId(orderId);
-                    item.setItemId(itemIds[i]); // Use the item ID from the form directly
-                    item.setQuantity(Integer.parseInt(quantities[i].trim()));
-                    item.setUnitPrice(new BigDecimal(prices[i].trim()));
-                    item.setSubtotal(item.getUnitPrice().multiply(new BigDecimal(item.getQuantity())));
                     orderItems.add(item);
-
-                    logger.log(Level.INFO, "Created order item - Order Item ID: " + item.getId() +
-                        ", Order ID: " + item.getOrderId() +
-                        ", Item ID: " + item.getItemId() +
-                        ", Quantity: " + item.getQuantity());
                 }
             }
         }
         return orderItems;
     }
 
-    private BigDecimal calculateTotalAmount(List<OrderItemDto> orderItems) {
+    private BigDecimal calculateSubtotal(List<OrderItemDto> orderItems) {
         return orderItems.stream()
-                .map(OrderItemDto::getSubtotal)
+                .map(OrderItemDto::getTotalPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private BigDecimal calculateDiscount(HttpServletRequest request, BigDecimal subtotal) {
+        String discountStr = request.getParameter("discountAmount");
+        if (discountStr != null && !discountStr.trim().isEmpty()) {
+            try {
+                return new BigDecimal(discountStr.trim());
+            } catch (NumberFormatException e) {
+                logger.log(Level.WARNING, "Invalid discount amount: " + discountStr);
+            }
+        }
+        return BigDecimal.ZERO;
     }
 }

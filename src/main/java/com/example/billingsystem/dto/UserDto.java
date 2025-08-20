@@ -78,17 +78,4 @@ public class UserDto {
     public void setLastLogin(Timestamp lastLogin) {
         this.lastLogin = lastLogin;
     }
-
-    @Override
-    public String toString() {
-        return "UserDto{" +
-                "id='" + id + '\'' +
-                ", username='" + username + '\'' +
-                ", email='" + email + '\'' +
-                ", password='" + password + '\'' +
-                ", role='" + role + '\'' +
-                ", createdAt=" + createdAt +
-                ", lastLogin=" + lastLogin +
-                '}';
-    }
 }

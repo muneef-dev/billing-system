@@ -23,27 +23,42 @@
                 <form action="${pageContext.request.contextPath}/customers${customer == null ? '' : '/edit/'.concat(customer.id)}"
                       method="POST" class="space-y-6">
 
-                    <div>
-                        <label for="accountNumber" class="form-label">
-                            Account Number
-                        </label>
-                        <input type="text"
-                               id="accountNumber"
-                               name="accountNumber"
-                               value="${customer.accountNumber}"
-                               required
-                               class="form-input">
-                    </div>
+                    <!-- Remove account number field for new customers since it's auto-generated -->
+                    <c:if test="${customer != null}">
+                        <div>
+                            <label for="accountNumber" class="form-label">
+                                Account Number
+                            </label>
+                            <input type="text"
+                                   id="accountNumber"
+                                   name="accountNumber"
+                                   value="${customer.accountNumber}"
+                                   readonly
+                                   class="form-input bg-gray-100">
+                            <p class="text-sm text-secondary mt-1">Account number is automatically generated and cannot be changed.</p>
+                        </div>
+                    </c:if>
 
                     <div>
                         <label for="name" class="form-label">
-                            Name
+                            Name <span class="text-red-500">*</span>
                         </label>
                         <input type="text"
                                id="name"
                                name="name"
                                value="${customer.name}"
                                required
+                               class="form-input">
+                    </div>
+
+                    <div>
+                        <label for="email" class="form-label">
+                            Email Address
+                        </label>
+                        <input type="email"
+                               id="email"
+                               name="email"
+                               value="${customer.email}"
                                class="form-input">
                     </div>
 
@@ -59,15 +74,26 @@
 
                     <div>
                         <label for="telephone" class="form-label">
-                            Telephone
+                            Telephone <span class="text-red-500">*</span>
                         </label>
                         <input type="tel"
                                id="telephone"
                                name="telephone"
                                value="${customer.telephone}"
-                               pattern="[0-9]{10}"
-                               title="Please enter a valid 10-digit phone number"
-                               class="form-input">
+                               required
+                               class="form-input"
+                               placeholder="Enter phone number">
+                    </div>
+
+                    <div>
+                        <label for="notes" class="form-label">
+                            Notes
+                        </label>
+                        <textarea id="notes"
+                                  name="notes"
+                                  rows="2"
+                                  class="form-input"
+                                  placeholder="Optional notes about the customer">${customer.notes}</textarea>
                     </div>
 
                     <div class="flex items-center justify-between pt-4">

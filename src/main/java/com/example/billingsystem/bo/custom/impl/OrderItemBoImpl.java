@@ -20,6 +20,11 @@ public class OrderItemBoImpl implements OrderItemBo {
 
     @Override
     public boolean createOrderItem(OrderItemDto orderItemDto) throws SQLException, ClassNotFoundException {
+        // Generate ID if not provided
+        if (orderItemDto.getId() == null || orderItemDto.getId().trim().isEmpty()) {
+            orderItemDto.setId(KeyGenerator.generateId());
+        }
+
         Logger.getLogger(OrderItemBoImpl.class.getName()).log(Level.INFO, "OrderItemBoImpl Executing SQL with ID: " + orderItemDto.getId());
         return orderItemDao.create(new OrderItem(
                 orderItemDto.getId(),
@@ -27,7 +32,7 @@ public class OrderItemBoImpl implements OrderItemBo {
                 orderItemDto.getItemId(),
                 orderItemDto.getQuantity(),
                 orderItemDto.getUnitPrice(),
-                orderItemDto.getSubtotal()
+                orderItemDto.getTotalPrice()
         ));
     }
 
@@ -39,7 +44,7 @@ public class OrderItemBoImpl implements OrderItemBo {
                 orderItemDto.getItemId(),
                 orderItemDto.getQuantity(),
                 orderItemDto.getUnitPrice(),
-                orderItemDto.getSubtotal()
+                orderItemDto.getTotalPrice()
         ));
     }
 
@@ -97,7 +102,7 @@ public class OrderItemBoImpl implements OrderItemBo {
                 dto.getItemId(),
                 dto.getQuantity(),
                 dto.getUnitPrice(),
-                dto.getSubtotal()
+                dto.getTotalPrice()
             );
 
             Logger.getLogger(OrderItemBoImpl.class.getName()).log(Level.INFO,
@@ -122,11 +127,9 @@ public class OrderItemBoImpl implements OrderItemBo {
                 orderItem.getId(),
                 orderItem.getOrderId(),
                 orderItem.getItemId(),
-                orderItem.getItemName(),
-                orderItem.getItemCode(),
                 orderItem.getQuantity(),
                 orderItem.getUnitPrice(),
-                orderItem.getSubtotal()
+                orderItem.getTotalPrice()
         );
     }
 
@@ -147,7 +150,7 @@ public class OrderItemBoImpl implements OrderItemBo {
             dto.getItemId(),
             dto.getQuantity(),
             dto.getUnitPrice(),
-            dto.getSubtotal()
+            dto.getTotalPrice()
         );
     }
 }

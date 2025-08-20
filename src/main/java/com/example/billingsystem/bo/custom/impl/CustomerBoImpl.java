@@ -5,6 +5,8 @@ import com.example.billingsystem.dao.DaoFactory;
 import com.example.billingsystem.dao.custom.CustomerDao;
 import com.example.billingsystem.dto.CustomerDto;
 import com.example.billingsystem.entity.Customer;
+import com.example.billingsystem.util.KeyGenerator;
+import com.example.billingsystem.util.GeneratorUtil;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -17,12 +19,25 @@ public class CustomerBoImpl implements CustomerBo {
 
     @Override
     public boolean createCustomer(CustomerDto customerDto) throws SQLException, ClassNotFoundException {
+        // Generate ID if not provided
+        if (customerDto.getId() == null || customerDto.getId().trim().isEmpty()) {
+            customerDto.setId(KeyGenerator.generateId());
+        }
+
+        // Generate account number if not provided
+        if (customerDto.getAccountNumber() == null || customerDto.getAccountNumber().trim().isEmpty()) {
+            customerDto.setAccountNumber(GeneratorUtil.generateAccountNumber());
+        }
+
         return customerDao.create(new Customer(
                 customerDto.getId(),
                 customerDto.getAccountNumber(),
                 customerDto.getName(),
+                customerDto.getEmail(),
                 customerDto.getAddress(),
                 customerDto.getTelephone(),
+                customerDto.getNotes(),
+                customerDto.isActive(),
                 new Timestamp(System.currentTimeMillis()),
                 new Timestamp(System.currentTimeMillis())
         ));
@@ -34,8 +49,11 @@ public class CustomerBoImpl implements CustomerBo {
                 customerDto.getId(),
                 customerDto.getAccountNumber(),
                 customerDto.getName(),
+                customerDto.getEmail(),
                 customerDto.getAddress(),
                 customerDto.getTelephone(),
+                customerDto.getNotes(),
+                customerDto.isActive(),
                 customerDto.getCreatedAt(),
                 new Timestamp(System.currentTimeMillis())
         ));
@@ -66,7 +84,7 @@ public class CustomerBoImpl implements CustomerBo {
 
     @Override
     public int getCustomerCount() throws SQLException, ClassNotFoundException {
-        return 0;
+        return customerDao.loadAll().size();
     }
 
     @Override
@@ -80,8 +98,11 @@ public class CustomerBoImpl implements CustomerBo {
                 customer.getId(),
                 customer.getAccountNumber(),
                 customer.getName(),
+                customer.getEmail(),
                 customer.getAddress(),
                 customer.getTelephone(),
+                customer.getNotes(),
+                customer.isActive(),
                 customer.getCreatedAt(),
                 customer.getUpdatedAt()
         );
