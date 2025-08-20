@@ -1,36 +1,47 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Account</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
-    <div class="bg-white p-8 rounded shadow-md w-96">
-        <h1 class="text-2xl font-bold mb-6 text-center">Create Account</h1>
-        <form action="/auth/register" method="POST">
-            <div class="mb-4 flex items-center space-x-2">
-                <i class="fa-solid fa-user text-gray-700"></i>
-                <label for="username" class="block text-gray-700">Username</label>
-                <input type="text" id="username" name="username" class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib tagdir="/WEB-INF/tags" prefix="t" %>
+
+<t:layout title="Create Account" layout="auth">
+    <jsp:attribute name="content">
+        <div class="card p-8 w-96">
+            <h1 class="text-2xl font-bold mb-6 text-center text-primary">Create Account</h1>
+            <form action="/auth/register" method="POST">
+                <div class="mb-4">
+                    <div class="flex items-center space-x-2 mb-2">
+                        <i class="fa-solid fa-user text-secondary"></i>
+                        <label for="username" class="form-label">Username</label>
+                    </div>
+                    <input type="text" id="username" name="username"
+                           class="form-input" required>
+                </div>
+                <div class="mb-4">
+                    <div class="flex items-center space-x-2 mb-2">
+                        <i class="fa-solid fa-lock text-secondary"></i>
+                        <label for="password" class="form-label">Password</label>
+                    </div>
+                    <input type="password" id="password" name="password"
+                           class="form-input" required>
+                </div>
+                <div class="mb-4">
+                    <div class="flex items-center space-x-2 mb-2">
+                        <i class="fa-solid fa-user-tag text-secondary"></i>
+                        <label for="role" class="form-label">Role</label>
+                    </div>
+                    <select id="role" name="role" class="form-input">
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary w-full mb-4">
+                    <i class="fas fa-user-plus mr-2"></i>Create Account
+                </button>
+            </form>
+            <div class="text-center">
+                <a href="/login.jsp" class="text-primary hover:text-primary-hover transition-colors">
+                    <i class="fas fa-sign-in-alt mr-2"></i>Already have an account? Login
+                </a>
             </div>
-            <div class="mb-4 flex items-center space-x-2">
-                <i class="fa-solid fa-lock text-gray-700"></i>
-                <label for="password" class="block text-gray-700">Password</label>
-                <input type="password" id="password" name="password" class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-            </div>
-            <div class="mb-4 flex items-center space-x-2">
-                <i class="fa-solid fa-user-tag text-gray-700"></i>
-                <label for="role" class="block text-gray-700">Role</label>
-                <select id="role" name="role" class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="user">User</option>
-                    <option value="admin">Admin</option>
-                </select>
-            </div>
-            <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">Create Account</button>
-        </form>
-    </div>
-</body>
-</html>
+        </div>
+    </jsp:attribute>
+</t:layout>
