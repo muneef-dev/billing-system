@@ -2,27 +2,47 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib tagdir="/WEB-INF/tags" prefix="t" %>
 
-<t:layout title="New Order" layout="dashboard">
+<t:layout title="${order == null ? 'Create New' : 'Edit'} Order" layout="dashboard">
     <jsp:attribute name="content">
         <div class="max-w-4xl mx-auto">
             <div class="flex justify-between items-center mb-6">
-                <h1 class="text-2xl font-bold text-primary">Create New Order</h1>
+                <h1 class="text-2xl font-bold text-primary">${order == null ? 'Create New' : 'Edit'} Order</h1>
                 <a href="${pageContext.request.contextPath}/orders"
                    class="text-primary hover:text-primary-hover transition-colors">Back to Orders</a>
             </div>
 
+            <c:if test="${error != null}">
+                <div class="card p-4 mb-4 bg-danger-light border-danger text-danger">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>${error}
+                </div>
+            </c:if>
+
             <div class="card p-6">
-                <form id="orderForm" class="space-y-6">
+                <form id="orderForm" action="${pageContext.request.contextPath}/orders${order == null ? '' : '/edit/'.concat(order.id)}" method="POST" class="space-y-6">
                     <!-- Customer Selection -->
                     <div>
-                        <label for="customerId" class="form-label">Customer</label>
-                        <select id="customerId" name="customerId" class="form-input">
+                        <label for="customerId" class="form-label">Customer <span class="text-red-500">*</span></label>
+                        <select id="customerId" name="customerId" class="form-input" required>
                             <option value="">Select a customer</option>
                             <c:forEach var="customer" items="${customers}">
-                                <option value="${customer.id}">${customer.name}</option>
+                                <option value="${customer.id}" ${order != null && order.customerId == customer.id ? 'selected' : ''}>
+                                    ${customer.name} (${customer.accountNumber})
+                                </option>
                             </c:forEach>
                         </select>
                     </div>
+
+                    <!-- Order Status (only for edit mode) -->
+                    <c:if test="${order != null}">
+                        <div>
+                            <label for="status" class="form-label">Order Status</label>
+                            <select id="status" name="status" class="form-input">
+                                <option value="Pending" ${order.status == 'Pending' ? 'selected' : ''}>Pending</option>
+                                <option value="Paid" ${order.status == 'Paid' ? 'selected' : ''}>Paid</option>
+                                <option value="Cancelled" ${order.status == 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                            </select>
+                        </div>
+                    </c:if>
 
                     <!-- Items Section -->
                     <div>
@@ -33,8 +53,8 @@
                             <select id="itemSelect" class="form-input flex-1">
                                 <option value="">Select an item</option>
                                 <c:forEach var="item" items="${items}">
-                                    <option value="${item.id}" data-price="${item.price}" data-stock="${item.stockQuantity}">
-                                        ${item.name} - $${item.price} (${item.stockQuantity} in stock)
+                                    <option value="${item.id}" data-name="${item.itemName}" data-price="${item.unitPrice}" data-stock="${item.stockQuantity}">
+                                        ${item.itemName} - $${item.unitPrice} (${item.stockQuantity} in stock)
                                     </option>
                                 </c:forEach>
                             </select>
@@ -51,7 +71,7 @@
                                     <tr>
                                         <th>Item</th>
                                         <th>Quantity</th>
-                                        <th>Price</th>
+                                        <th>Unit Price</th>
                                         <th>Total</th>
                                         <th>Action</th>
                                     </tr>
@@ -60,10 +80,25 @@
                             </table>
                         </div>
 
-                        <!-- Order Total -->
-                        <div class="text-right text-lg font-semibold text-primary">
-                            Total: $<span id="orderTotal">0.00</span>
+                        <!-- Order Summary -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-tertiary rounded-lg">
+                            <div class="text-center">
+                                <div class="text-sm text-secondary">Subtotal</div>
+                                <div class="text-lg font-semibold text-primary">$<span id="orderSubtotal">0.00</span></div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-sm text-secondary">Discount</div>
+                                <input type="number" id="discountAmount" name="discountAmount" step="0.01" min="0" value="${order != null ? order.discountAmount : 0}"
+                                       class="form-input text-center" onchange="updateOrderTotal()">
+                            </div>
+                            <div class="text-center">
+                                <div class="text-sm text-secondary">Total</div>
+                                <div class="text-xl font-bold text-primary">$<span id="orderTotal">0.00</span></div>
+                            </div>
                         </div>
+
+                        <!-- Hidden inputs for order items -->
+                        <div id="orderItemsData"></div>
                     </div>
 
                     <!-- Submit Buttons -->
@@ -72,8 +107,8 @@
                                 class="btn btn-secondary">
                             <i class="fas fa-times mr-2"></i>Cancel
                         </button>
-                        <button type="button" onclick="submitOrder()" class="btn btn-primary">
-                            <i class="fas fa-save mr-2"></i>Create Order
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-2"></i>${order == null ? 'Create' : 'Update'} Order
                         </button>
                     </div>
                 </form>
@@ -88,20 +123,27 @@
 
             // Initialize items data
             <c:forEach var="item" items="${items}">
-                itemsData[${item.id}] = {
-                    id: ${item.id},
-                    name: "${item.name}",
-                    price: ${item.price},
+                itemsData['${item.id}'] = {
+                    id: '${item.id}',
+                    name: '${item.itemName}',
+                    price: ${item.unitPrice},
                     stock: ${item.stockQuantity}
                 };
             </c:forEach>
 
-            // Check if functions are available
-            document.addEventListener('DOMContentLoaded', function() {
-                if (typeof showConfirmDialog === 'undefined' || typeof showSuccessToast === 'undefined') {
-                    console.error('Toast and dialog functions not loaded. Please check script.js');
-                }
+            // Initialize existing order items for edit mode
+            <c:if test="${orderItems != null}">
+                <c:forEach var="orderItem" items="${orderItems}">
+                    orderItems.push({
+                        itemId: '${orderItem.itemId}',
+                        name: itemsData['${orderItem.itemId}'] ? itemsData['${orderItem.itemId}'].name : 'Unknown Item',
+                        quantity: ${orderItem.quantity},
+                        unitPrice: ${orderItem.unitPrice}
+                    });
+                </c:forEach>
+            </c:if>
 
+            document.addEventListener('DOMContentLoaded', function() {
                 updateOrderTable();
 
                 // Add enter key support for quantity input
@@ -119,32 +161,23 @@
                 const itemId = itemSelect.value;
 
                 if (!itemId) {
-                    try {
-                        showWarningToast('Please select an item first');
-                    } catch (error) {
-                        alert('Please select an item first');
-                    }
+                    alert('Please select an item first');
                     return;
                 }
 
-                const item = itemsData[itemId];
+                const option = itemSelect.options[itemSelect.selectedIndex];
+                const itemName = option.getAttribute('data-name');
+                const itemPrice = parseFloat(option.getAttribute('data-price'));
+                const itemStock = parseInt(option.getAttribute('data-stock'));
                 const qty = parseInt(quantity.value);
 
                 if (qty <= 0) {
-                    try {
-                        showWarningToast('Please enter a valid quantity');
-                    } catch (error) {
-                        alert('Please enter a valid quantity');
-                    }
+                    alert('Please enter a valid quantity');
                     return;
                 }
 
-                if (qty > item.stock) {
-                    try {
-                        showErrorToast(`Not enough stock available. Only ${item.stock} items in stock.`);
-                    } catch (error) {
-                        alert(`Not enough stock available. Only ${item.stock} items in stock.`);
-                    }
+                if (qty > itemStock) {
+                    alert(`Not enough stock available. Only ${itemStock} items in stock.`);
                     return;
                 }
 
@@ -152,32 +185,18 @@
                 const existingItemIndex = orderItems.findIndex(orderItem => orderItem.itemId === itemId);
                 if (existingItemIndex !== -1) {
                     const totalQuantity = orderItems[existingItemIndex].quantity + qty;
-                    if (totalQuantity > item.stock) {
-                        try {
-                            showErrorToast(`Cannot add ${qty} more items. Only ${item.stock - orderItems[existingItemIndex].quantity} items available.`);
-                        } catch (error) {
-                            alert(`Cannot add ${qty} more items. Only ${item.stock - orderItems[existingItemIndex].quantity} items available.`);
-                        }
+                    if (totalQuantity > itemStock) {
+                        alert(`Cannot add ${qty} more items. Only ${itemStock - orderItems[existingItemIndex].quantity} items available.`);
                         return;
                     }
                     orderItems[existingItemIndex].quantity = totalQuantity;
-                    try {
-                        showInfoToast(`Updated quantity for ${item.name}`);
-                    } catch (error) {
-                        // Silent fallback for info toast
-                    }
                 } else {
                     orderItems.push({
                         itemId: itemId,
-                        name: item.name,
+                        name: itemName,
                         quantity: qty,
-                        price: item.price
+                        unitPrice: itemPrice
                     });
-                    try {
-                        showSuccessToast(`${item.name} added to order`);
-                    } catch (error) {
-                        // Silent fallback for success toast
-                    }
                 }
 
                 updateOrderTable();
@@ -185,58 +204,40 @@
                 quantity.value = 1;
             }
 
-            async function removeItem(index) {
+            function removeItem(index) {
                 const item = orderItems[index];
-
-                try {
-                    const confirmed = await showConfirmDialog(
-                        'Remove Item',
-                        `Are you sure you want to remove "${item.name}" from this order?`,
-                        {
-                            confirmText: 'Remove',
-                            cancelText: 'Cancel',
-                            confirmStyle: 'danger',
-                            icon: 'fas fa-trash-alt'
-                        }
-                    );
-
-                    if (confirmed) {
-                        orderItems.splice(index, 1);
-                        updateOrderTable();
-                        showInfoToast(`${item.name} removed from order`);
-                    }
-                } catch (error) {
-                    console.error('Dialog error:', error);
-                    // Fallback to basic confirm
-                    if (confirm(`Remove Item?\n\nAre you sure you want to remove "${item.name}" from this order?`)) {
-                        orderItems.splice(index, 1);
-                        updateOrderTable();
-                    }
+                if (confirm(`Remove Item?\n\nAre you sure you want to remove "${item.name}" from this order?`)) {
+                    orderItems.splice(index, 1);
+                    updateOrderTable();
                 }
             }
 
             function updateOrderTable() {
                 const tbody = document.getElementById('orderItems');
-                const totalSpan = document.getElementById('orderTotal');
-                let total = 0;
+                const subtotalSpan = document.getElementById('orderSubtotal');
+                const dataDiv = document.getElementById('orderItemsData');
+                let subtotal = 0;
 
                 if (orderItems.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="5" class="text-center text-secondary py-8">No items added yet</td></tr>';
-                    totalSpan.textContent = '0.00';
+                    subtotalSpan.textContent = '0.00';
+                    dataDiv.innerHTML = '';
+                    updateOrderTotal();
                     return;
                 }
 
+                // Update table display
                 tbody.innerHTML = orderItems.map((item, index) => {
-                    const itemTotal = item.quantity * item.price;
-                    total += itemTotal;
+                    const itemTotal = item.quantity * item.unitPrice;
+                    subtotal += itemTotal;
                     return `
                         <tr>
                             <td class="text-primary font-medium">${item.name}</td>
                             <td class="text-secondary">${item.quantity}</td>
-                            <td class="text-secondary">$${item.price.toFixed(2)}</td>
+                            <td class="text-secondary">$${item.unitPrice.toFixed(2)}</td>
                             <td class="text-secondary">$${itemTotal.toFixed(2)}</td>
                             <td>
-                                <button onclick="removeItem(${index})" class="text-danger hover:text-danger-hover transition-colors">
+                                <button type="button" onclick="removeItem(${index})" class="text-danger hover:text-danger-hover transition-colors">
                                     <i class="fas fa-trash mr-1"></i>Remove
                                 </button>
                             </td>
@@ -244,108 +245,42 @@
                     `;
                 }).join('');
 
-                totalSpan.textContent = total.toFixed(2);
+                // Update hidden form inputs
+                dataDiv.innerHTML = orderItems.map((item, index) => `
+                    <input type="hidden" name="itemId[]" value="${item.itemId}">
+                    <input type="hidden" name="quantity[]" value="${item.quantity}">
+                    <input type="hidden" name="unitPrice[]" value="${item.unitPrice}">
+                `).join('');
+
+                subtotalSpan.textContent = subtotal.toFixed(2);
+                updateOrderTotal();
             }
 
-            async function submitOrder() {
+            function updateOrderTotal() {
+                const subtotal = parseFloat(document.getElementById('orderSubtotal').textContent);
+                const discount = parseFloat(document.getElementById('discountAmount').value) || 0;
+                const total = Math.max(0, subtotal - discount);
+                document.getElementById('orderTotal').textContent = total.toFixed(2);
+            }
+
+            // Form validation before submit
+            document.getElementById('orderForm').addEventListener('submit', function(e) {
                 const customerId = document.getElementById('customerId').value;
 
-                // Validation
                 if (!customerId) {
-                    try {
-                        showWarningToast('Please select a customer first');
-                    } catch (error) {
-                        alert('Please select a customer first');
-                    }
-                    return;
+                    e.preventDefault();
+                    alert('Please select a customer first');
+                    return false;
                 }
 
                 if (orderItems.length === 0) {
-                    try {
-                        showWarningToast('Please add at least one item to the order');
-                    } catch (error) {
-                        alert('Please add at least one item to the order');
-                    }
-                    return;
+                    e.preventDefault();
+                    alert('Please add at least one item to the order');
+                    return false;
                 }
 
-                const total = orderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-
-                try {
-                    // Show confirmation dialog
-                    const confirmed = await showConfirmDialog(
-                        'Create Order',
-                        `Are you sure you want to create this order with ${orderItems.length} item(s) for a total of $${total.toFixed(2)}?`,
-                        {
-                            confirmText: 'Create Order',
-                            cancelText: 'Cancel',
-                            confirmStyle: 'success',
-                            icon: 'fas fa-shopping-cart'
-                        }
-                    );
-
-                    if (!confirmed) return;
-                } catch (error) {
-                    console.error('Dialog error:', error);
-                    // Fallback to basic confirm
-                    if (!confirm(`Create Order?\n\nAre you sure you want to create this order with ${orderItems.length} item(s) for a total of $${total.toFixed(2)}?`)) {
-                        return;
-                    }
-                }
-
-                // Get the submit button from event context or find it
-                const submitBtn = document.querySelector('button[onclick="submitOrder()"]');
-                const originalText = submitBtn.innerHTML;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creating Order...';
-                submitBtn.disabled = true;
-
-                const orderData = {
-                    customerId: customerId,
-                    items: orderItems.map(item => ({
-                        itemId: item.itemId,
-                        quantity: item.quantity
-                    }))
-                };
-
-                try {
-                    const response = await fetch('${pageContext.request.contextPath}/orders/create', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(orderData)
-                    });
-
-                    if (response.ok) {
-                        try {
-                            showSuccessToast('Order created successfully! Redirecting...');
-                        } catch (error) {
-                            alert('Order created successfully! Redirecting...');
-                        }
-                        setTimeout(() => {
-                            window.location.href = '${pageContext.request.contextPath}/orders';
-                        }, 1500);
-                    } else {
-                        const errorText = await response.text();
-                        try {
-                            showErrorToast(errorText || 'Failed to create order. Please try again.');
-                        } catch (error) {
-                            alert(errorText || 'Failed to create order. Please try again.');
-                        }
-                    }
-                } catch (error) {
-                    console.error('Network error:', error);
-                    try {
-                        showErrorToast('An error occurred while creating the order. Please try again.');
-                    } catch (error) {
-                        alert('An error occurred while creating the order. Please try again.');
-                    }
-                } finally {
-                    // Restore button state
-                    submitBtn.innerHTML = originalText;
-                    submitBtn.disabled = false;
-                }
-            }
+                return true;
+            });
         </script>
     </jsp:attribute>
 </t:layout>

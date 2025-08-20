@@ -16,31 +16,32 @@ public class UserDaoImpl implements UserDao {
     @Override
     public boolean create(User user) throws SQLException, ClassNotFoundException {
         Logger.getLogger(UserDaoImpl.class.getName()).log(Level.INFO, "UserDao Executing SQL with ID: " + user.getId());
-        return CrudUtil.execute("INSERT INTO users (id, username, email, password, user_role, created_at, last_login) VALUES (?,?,?,?,?,?,?)",
-                user.getId(), user.getUsername(), user.getEmail(), user.getPassword(), user.getRole(), user.getCreatedAt(), user.getLastLogin());
+        return CrudUtil.execute("INSERT INTO users (id, username, email, password, role, is_active, created_at, updated_at, last_login) VALUES (?,?,?,?,?,?,?,?,?)",
+                user.getId(), user.getUsername(), user.getEmail(), user.getPassword(), user.getRole(),
+                true, user.getCreatedAt(), user.getCreatedAt(), user.getLastLogin());
     }
 
     @Override
     public boolean delete(String id) throws SQLException, ClassNotFoundException {
-        return CrudUtil.execute("DELETE FROM users WHERE id=?",id);
+        return CrudUtil.execute("DELETE FROM users WHERE id=?", id);
     }
 
     @Override
     public boolean update(User user) throws SQLException, ClassNotFoundException {
-        return CrudUtil.execute("UPDATE users SET username=?, email=?, password=?, user_role=?, created_at=?, last_login=? WHERE id=?",
-                user.getUsername(), user.getEmail(), user.getPassword(), user.getRole(), user.getCreatedAt(), user.getLastLogin(), user.getId());
+        return CrudUtil.execute("UPDATE users SET username=?, email=?, password=?, role=?, last_login=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                user.getUsername(), user.getEmail(), user.getPassword(), user.getRole(), user.getLastLogin(), user.getId());
     }
 
     @Override
     public User findByUsername(String username) throws SQLException, ClassNotFoundException {
-        ResultSet resultSet = CrudUtil.execute("SELECT * FROM users WHERE username=?", username);
+        ResultSet resultSet = CrudUtil.execute("SELECT * FROM users WHERE username=? AND is_active=true", username);
         if (resultSet.next()) {
             return new User(
                     resultSet.getString("id"),
                     resultSet.getString("username"),
                     resultSet.getString("email"),
                     resultSet.getString("password"),
-                    resultSet.getString("user_role"),
+                    resultSet.getString("role"),
                     resultSet.getTimestamp("created_at"),
                     resultSet.getTimestamp("last_login")
             );
@@ -50,14 +51,14 @@ public class UserDaoImpl implements UserDao {
 
     @Override
     public User findByEmail(String email) throws SQLException, ClassNotFoundException {
-        ResultSet resultSet = CrudUtil.execute("SELECT * FROM users WHERE email=?", email);
+        ResultSet resultSet = CrudUtil.execute("SELECT * FROM users WHERE email=? AND is_active=true", email);
         if (resultSet.next()) {
             return new User(
                     resultSet.getString("id"),
                     resultSet.getString("username"),
                     resultSet.getString("email"),
                     resultSet.getString("password"),
-                    resultSet.getString("user_role"),
+                    resultSet.getString("role"),
                     resultSet.getTimestamp("created_at"),
                     resultSet.getTimestamp("last_login")
             );
@@ -67,14 +68,14 @@ public class UserDaoImpl implements UserDao {
 
     @Override
     public User findByUsernameOrEmail(String usernameOrEmail) throws SQLException, ClassNotFoundException {
-        ResultSet resultSet = CrudUtil.execute("SELECT * FROM users WHERE username=? OR email=?", usernameOrEmail, usernameOrEmail);
+        ResultSet resultSet = CrudUtil.execute("SELECT * FROM users WHERE (username=? OR email=?) AND is_active=true", usernameOrEmail, usernameOrEmail);
         if (resultSet.next()) {
             return new User(
                     resultSet.getString("id"),
                     resultSet.getString("username"),
                     resultSet.getString("email"),
                     resultSet.getString("password"),
-                    resultSet.getString("user_role"),
+                    resultSet.getString("role"),
                     resultSet.getTimestamp("created_at"),
                     resultSet.getTimestamp("last_login")
             );
@@ -84,14 +85,14 @@ public class UserDaoImpl implements UserDao {
 
     @Override
     public User findById(String id) throws SQLException, ClassNotFoundException {
-        ResultSet resultSet = CrudUtil.execute("SELECT * FROM users WHERE id=?", id);
+        ResultSet resultSet = CrudUtil.execute("SELECT * FROM users WHERE id=? AND is_active=true", id);
         if (resultSet.next()) {
             return new User(
                     resultSet.getString("id"),
                     resultSet.getString("username"),
                     resultSet.getString("email"),
                     resultSet.getString("password"),
-                    resultSet.getString("user_role"),
+                    resultSet.getString("role"),
                     resultSet.getTimestamp("created_at"),
                     resultSet.getTimestamp("last_login")
             );
@@ -101,7 +102,7 @@ public class UserDaoImpl implements UserDao {
 
     @Override
     public boolean existsByEmail(String email) throws SQLException, ClassNotFoundException {
-        ResultSet resultSet = CrudUtil.execute("SELECT COUNT(*) FROM users WHERE email=?", email);
+        ResultSet resultSet = CrudUtil.execute("SELECT COUNT(*) FROM users WHERE email=? AND is_active=true", email);
         if (resultSet.next()) {
             return resultSet.getInt(1) > 0;
         }
@@ -113,7 +114,7 @@ public class UserDaoImpl implements UserDao {
         if (username == null || username.trim().isEmpty()) {
             return false; // Username is optional, so empty/null usernames don't count as duplicates
         }
-        ResultSet resultSet = CrudUtil.execute("SELECT COUNT(*) FROM users WHERE username=?", username);
+        ResultSet resultSet = CrudUtil.execute("SELECT COUNT(*) FROM users WHERE username=? AND is_active=true", username);
         if (resultSet.next()) {
             return resultSet.getInt(1) > 0;
         }
@@ -122,7 +123,7 @@ public class UserDaoImpl implements UserDao {
 
     @Override
     public List<User> loadAll() throws SQLException, ClassNotFoundException {
-        ResultSet resultSet = CrudUtil.execute("SELECT * FROM users");
+        ResultSet resultSet = CrudUtil.execute("SELECT * FROM users WHERE is_active=true ORDER BY created_at DESC");
         List<User> userList = new ArrayList<>();
         while (resultSet.next()) {
             userList.add(new User(
@@ -130,7 +131,7 @@ public class UserDaoImpl implements UserDao {
                     resultSet.getString("username"),
                     resultSet.getString("email"),
                     resultSet.getString("password"),
-                    resultSet.getString("user_role"),
+                    resultSet.getString("role"),
                     resultSet.getTimestamp("created_at"),
                     resultSet.getTimestamp("last_login")
             ));
@@ -141,7 +142,7 @@ public class UserDaoImpl implements UserDao {
     @Override
     public List<User> search(String id) throws SQLException, ClassNotFoundException {
         id = "%" + id + "%";
-        ResultSet resultSet = CrudUtil.execute("SELECT * FROM users WHERE id LIKE ? OR username LIKE ? OR email LIKE ?", id, id, id);
+        ResultSet resultSet = CrudUtil.execute("SELECT * FROM users WHERE (id LIKE ? OR username LIKE ? OR email LIKE ?) AND is_active=true", id, id, id);
         List<User> userList = new ArrayList<>();
         while (resultSet.next()) {
             userList.add(new User(
@@ -149,11 +150,21 @@ public class UserDaoImpl implements UserDao {
                     resultSet.getString("username"),
                     resultSet.getString("email"),
                     resultSet.getString("password"),
-                    resultSet.getString("user_role"),
+                    resultSet.getString("role"),
                     resultSet.getTimestamp("created_at"),
                     resultSet.getTimestamp("last_login")
             ));
         }
         return userList;
+    }
+
+    @Override
+    public boolean updatePasswordByEmail(String email, String hashedPassword) throws SQLException, ClassNotFoundException {
+        return CrudUtil.execute("UPDATE users SET password = ? WHERE email = ?", hashedPassword, email);
+    }
+
+    @Override
+    public boolean updatePasswordById(String userId, String hashedPassword) throws SQLException, ClassNotFoundException {
+        return CrudUtil.execute("UPDATE users SET password = ? WHERE id = ?", hashedPassword, userId);
     }
 }

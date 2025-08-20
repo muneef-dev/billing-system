@@ -33,7 +33,8 @@
                         <tr>
                             <th>Code</th>
                             <th>Name</th>
-                            <th>Price</th>
+                            <th>Category</th>
+                            <th>Unit Price</th>
                             <th>Stock</th>
                             <th>Actions</th>
                         </tr>
@@ -42,17 +43,23 @@
                         <c:forEach var="item" items="${items}">
                             <tr>
                                 <td class="font-medium text-primary">${item.itemCode}</td>
-                                <td class="text-secondary">${item.name}</td>
+                                <td class="text-secondary">${item.itemName}</td>
+                                <td class="text-secondary">${item.category != null && !item.category.isEmpty() ? item.category : 'N/A'}</td>
                                 <td class="text-secondary">
-                                    <fmt:formatNumber value="${item.price}" type="currency"/>
+                                    <fmt:formatNumber value="${item.unitPrice}" type="currency"/>
                                 </td>
-                                <td class="text-secondary">${item.stockQuantity}</td>
+                                <td class="text-secondary">
+                                    <span class="${item.stockQuantity <= item.minimumStockLevel ? 'text-danger font-medium' : ''}">${item.stockQuantity}</span>
+                                    <c:if test="${item.stockQuantity <= item.minimumStockLevel}">
+                                        <i class="fas fa-exclamation-triangle text-danger ml-1" title="Low Stock"></i>
+                                    </c:if>
+                                </td>
                                 <td class="space-x-2">
                                     <a href="${pageContext.request.contextPath}/items/edit/${item.id}"
                                        class="text-primary hover:text-primary-hover transition-colors">
                                         <i class="fas fa-edit mr-1"></i>Edit
                                     </a>
-                                    <a href="#" onclick="deleteItem('${item.id}', '${item.name}')"
+                                    <a href="#" onclick="deleteItem('${item.id}', '${item.itemName}')"
                                        class="text-danger hover:text-danger-hover transition-colors">
                                         <i class="fas fa-trash mr-1"></i>Delete
                                     </a>

@@ -6,8 +6,10 @@ import com.example.billingsystem.dao.custom.UserDao;
 import com.example.billingsystem.dto.UserDto;
 import com.example.billingsystem.entity.User;
 import com.example.billingsystem.util.PasswordManager;
+import com.example.billingsystem.util.KeyGenerator;
 
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -20,6 +22,26 @@ public class UserBoImpl implements UserBo {
 
     @Override
     public boolean createUser(UserDto userDto) throws SQLException, ClassNotFoundException {
+        // Generate ID if not provided
+        if (userDto.getId() == null || userDto.getId().trim().isEmpty()) {
+            userDto.setId(KeyGenerator.generateId());
+        }
+
+        // Set created_at timestamp if not provided
+        if (userDto.getCreatedAt() == null) {
+            userDto.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+        }
+
+        // Validate role enum values according to schema
+        if (userDto.getRole() != null) {
+            String role = userDto.getRole().toLowerCase();
+            if (!role.equals("admin") && !role.equals("staff")) {
+                userDto.setRole("staff"); // Default to staff if invalid role
+            }
+        } else {
+            userDto.setRole("staff"); // Default role from schema
+        }
+
         Logger.getLogger(UserBoImpl.class.getName()).log(Level.INFO, "UserBo Executing SQL with ID: " + userDto.getId());
 
         // Check if email already exists
@@ -36,7 +58,13 @@ public class UserBoImpl implements UserBo {
         }
 
         return userDao.create(new User(
-                userDto.getId(), userDto.getUsername(), userDto.getEmail(), userDto.getPassword(), userDto.getRole(), userDto.getCreatedAt(), userDto.getLastLogin()
+                userDto.getId(),
+                userDto.getUsername(),
+                userDto.getEmail(),
+                userDto.getPassword(),
+                userDto.getRole(),
+                userDto.getCreatedAt(),
+                userDto.getLastLogin()
         ));
     }
 
@@ -111,5 +139,35 @@ public class UserBoImpl implements UserBo {
             );
         }
         return null;
+    }
+
+    @Override
+    public UserDto getUserByEmail(String email) throws SQLException, ClassNotFoundException {
+        User user = userDao.findByEmail(email);
+        if (user != null) {
+            return new UserDto(
+                    user.getId(), user.getUsername(), user.getEmail(), user.getPassword(), user.getRole(), user.getCreatedAt(), user.getLastLogin()
+            );
+        }
+        return null;
+    }
+
+    @Override
+    public boolean updatePassword(String email, String newPassword) throws SQLException, ClassNotFoundException {
+        String hashedPassword = PasswordManager.encryptPassword(newPassword);
+        return userDao.updatePasswordByEmail(email, hashedPassword);
+    }
+
+    @Override
+    public boolean updatePassword(String userId, String currentPassword, String newPassword) throws SQLException, ClassNotFoundException {
+        // First verify the current password
+        User user = userDao.findById(userId);
+        if (user == null || !PasswordManager.checkPassword(currentPassword, user.getPassword())) {
+            return false;
+        }
+
+        // Update with new password
+        String hashedPassword = PasswordManager.encryptPassword(newPassword);
+        return userDao.updatePasswordById(userId, hashedPassword);
     }
 }

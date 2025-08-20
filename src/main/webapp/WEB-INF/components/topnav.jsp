@@ -18,7 +18,6 @@
             <button id="themeToggle" onclick="toggleTheme()"
                     class="flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                 <i class="fas fa-moon mr-2"></i>
-                <span>Dark Mode</span>
             </button>
 
             <!-- Notifications -->

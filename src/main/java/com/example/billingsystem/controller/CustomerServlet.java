@@ -3,7 +3,6 @@ package com.example.billingsystem.controller;
 import com.example.billingsystem.bo.BoFactory;
 import com.example.billingsystem.bo.custom.CustomerBo;
 import com.example.billingsystem.dto.CustomerDto;
-import com.example.billingsystem.util.KeyGenerator;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -90,35 +89,37 @@ public class CustomerServlet extends HttpServlet {
 
     private void handleCreateCustomer(HttpServletRequest request, HttpServletResponse response) throws Exception {
         CustomerDto customerDto = new CustomerDto();
-        customerDto.setId(KeyGenerator.generateId());
-        customerDto.setAccountNumber(request.getParameter("accountNumber").trim());
-        customerDto.setName(request.getParameter("name").trim());
-        customerDto.setAddress(request.getParameter("address").trim());
-        customerDto.setTelephone(request.getParameter("telephone").trim());
+        customerDto.setName(request.getParameter("name") != null ? request.getParameter("name").trim() : "");
+        customerDto.setEmail(request.getParameter("email") != null ? request.getParameter("email").trim() : "");
+        customerDto.setAddress(request.getParameter("address") != null ? request.getParameter("address").trim() : "");
+        customerDto.setTelephone(request.getParameter("telephone") != null ? request.getParameter("telephone").trim() : "");
+        customerDto.setNotes(request.getParameter("notes") != null ? request.getParameter("notes").trim() : "");
+        customerDto.setActive(true); // Default to active
 
         if (customerBo.createCustomer(customerDto)) {
             response.sendRedirect(request.getContextPath() + "/customers");
         } else {
             request.setAttribute("error", "Failed to create customer");
             request.setAttribute("customer", customerDto);
-            handleNewCustomerForm(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/customer/form.jsp").forward(request, response);
         }
     }
 
     private void handleUpdateCustomer(HttpServletRequest request, HttpServletResponse response, String id) throws Exception {
         CustomerDto customerDto = customerBo.getCustomer(id);
         if (customerDto != null) {
-            customerDto.setAccountNumber(request.getParameter("accountNumber").trim());
-            customerDto.setName(request.getParameter("name").trim());
-            customerDto.setAddress(request.getParameter("address").trim());
-            customerDto.setTelephone(request.getParameter("telephone").trim());
+            customerDto.setName(request.getParameter("name") != null ? request.getParameter("name").trim() : "");
+            customerDto.setEmail(request.getParameter("email") != null ? request.getParameter("email").trim() : "");
+            customerDto.setAddress(request.getParameter("address") != null ? request.getParameter("address").trim() : "");
+            customerDto.setTelephone(request.getParameter("telephone") != null ? request.getParameter("telephone").trim() : "");
+            customerDto.setNotes(request.getParameter("notes") != null ? request.getParameter("notes").trim() : "");
 
             if (customerBo.updateCustomer(customerDto)) {
                 response.sendRedirect(request.getContextPath() + "/customers");
             } else {
                 request.setAttribute("error", "Failed to update customer");
                 request.setAttribute("customer", customerDto);
-                handleNewCustomerForm(request, response);
+                request.getRequestDispatcher("/WEB-INF/views/customer/form.jsp").forward(request, response);
             }
         } else {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);

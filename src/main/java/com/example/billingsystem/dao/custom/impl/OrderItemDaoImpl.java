@@ -22,14 +22,17 @@ public class OrderItemDaoImpl implements OrderItemDao {
             ", Order ID: " + orderItem.getOrderId() +
             ", Item ID: " + orderItem.getItemId());
 
-        return CrudUtil.execute("INSERT INTO order_items (id, order_id, item_id, quantity, unit_price, subtotal) " +
-                        "VALUES (?, ?, ?, ?, ?, ?)",
+        return CrudUtil.execute("INSERT INTO order_items (id, order_id, item_id, quantity, unit_price, total_price, created_at, updated_at) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+
                 orderItem.getId(),
                 orderItem.getOrderId(),
                 orderItem.getItemId(),
                 orderItem.getQuantity(),
                 orderItem.getUnitPrice(),
-                orderItem.getSubtotal()
+                orderItem.getTotalPrice(),
+                orderItem.getCreatedAt(),
+                orderItem.getUpdatedAt()
         );
     }
 
@@ -40,10 +43,11 @@ public class OrderItemDaoImpl implements OrderItemDao {
 
     @Override
     public boolean update(OrderItem orderItem) throws SQLException, ClassNotFoundException {
-        return CrudUtil.execute("UPDATE order_items SET quantity=?, unit_price=?, subtotal=? WHERE id=?",
+        return CrudUtil.execute("UPDATE order_items SET quantity=?, unit_price=?, total_price=?, updated_at=? WHERE id=?",
                 orderItem.getQuantity(),
                 orderItem.getUnitPrice(),
-                orderItem.getSubtotal(),
+                orderItem.getTotalPrice(),
+                orderItem.getUpdatedAt(),
                 orderItem.getId()
         );
     }
@@ -56,7 +60,7 @@ public class OrderItemDaoImpl implements OrderItemDao {
     @Override
     public OrderItem find(String id) throws SQLException, ClassNotFoundException {
         ResultSet resultSet = CrudUtil.execute(
-            "SELECT oi.*, i.name as item_name, i.item_code " +
+            "SELECT oi.*, i.item_name, i.item_code " +
             "FROM order_items oi " +
             "LEFT JOIN items i ON oi.item_id = i.id " +
             "WHERE oi.id=?", id);
@@ -69,7 +73,7 @@ public class OrderItemDaoImpl implements OrderItemDao {
     @Override
     public List<OrderItem> loadAll() throws SQLException, ClassNotFoundException {
         ResultSet resultSet = CrudUtil.execute(
-            "SELECT oi.*, i.name as item_name, i.item_code " +
+            "SELECT oi.*, i.item_name, i.item_code " +
             "FROM order_items oi " +
             "LEFT JOIN items i ON oi.item_id = i.id");
         return extractOrderItemsFromResultSet(resultSet);
@@ -78,10 +82,10 @@ public class OrderItemDaoImpl implements OrderItemDao {
     @Override
     public List<OrderItem> findByOrderId(String orderId) throws SQLException, ClassNotFoundException {
         ResultSet resultSet = CrudUtil.execute(
-            "SELECT oi.*, i.name as item_name, i.item_code " +
+            "SELECT oi.*, i.item_name, i.item_code " +
             "FROM order_items oi " +
             "LEFT JOIN items i ON oi.item_id = i.id " +
-            "WHERE oi.order_id = ?", orderId);
+            "WHERE oi.order_id=?", orderId);
         return extractOrderItemsFromResultSet(resultSet);
     }
 
@@ -125,17 +129,16 @@ public class OrderItemDaoImpl implements OrderItemDao {
     }
 
     private OrderItem extractOrderItemFromResultSet(ResultSet rs) throws SQLException {
-        OrderItem orderItem = new OrderItem(
+        return new OrderItem(
                 rs.getString("id"),
                 rs.getString("order_id"),
                 rs.getString("item_id"),
                 rs.getInt("quantity"),
                 rs.getBigDecimal("unit_price"),
-                rs.getBigDecimal("subtotal")
+                rs.getBigDecimal("total_price"),
+                rs.getTimestamp("created_at"),
+                rs.getTimestamp("updated_at")
         );
-        orderItem.setItemName(rs.getString("item_name"));
-        orderItem.setItemCode(rs.getString("item_code"));
-        return orderItem;
     }
 
     private List<OrderItem> extractOrderItemsFromResultSet(ResultSet rs) throws SQLException {

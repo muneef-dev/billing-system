@@ -16,4 +16,7 @@ public interface UserBo extends SuperBo {
     Optional<UserDto> authenticateUser(String usernameOrEmail, String password) throws SQLException, ClassNotFoundException;
     UserDto authenticate(String usernameOrEmail, String password) throws SQLException, ClassNotFoundException;
     UserDto findUserById(String id) throws SQLException, ClassNotFoundException;
+    UserDto getUserByEmail(String email) throws SQLException, ClassNotFoundException;
+    boolean updatePassword(String email, String newPassword) throws SQLException, ClassNotFoundException;
+    boolean updatePassword(String userId, String currentPassword, String newPassword) throws SQLException, ClassNotFoundException;
 }

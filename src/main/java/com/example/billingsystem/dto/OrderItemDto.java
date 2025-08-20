@@ -1,33 +1,33 @@
 package com.example.billingsystem.dto;
 
+import java.sql.Timestamp;
 import java.math.BigDecimal;
 
 public class OrderItemDto {
     private String id;
     private String orderId;
     private String itemId;
-    private String itemName; // For display purposes
-    private String itemCode; // For display purposes
+    private String itemName;
     private int quantity;
     private BigDecimal unitPrice;
-    private BigDecimal subtotal;
+    private BigDecimal totalPrice;
+    private Timestamp createdAt;
+    private Timestamp updatedAt;
 
     public OrderItemDto() {
     }
 
-    public OrderItemDto(String id, String orderId, String itemId, String itemName,
-                       String itemCode, int quantity, BigDecimal unitPrice, BigDecimal subtotal) {
+    public OrderItemDto(String id, String orderId, String itemId, int quantity,
+                       BigDecimal unitPrice, BigDecimal totalPrice
+                       ) {
         this.id = id;
         this.orderId = orderId;
         this.itemId = itemId;
-        this.itemName = itemName;
-        this.itemCode = itemCode;
         this.quantity = quantity;
         this.unitPrice = unitPrice;
-        this.subtotal = subtotal;
+        this.totalPrice = totalPrice;
     }
 
-    // Getters and Setters
     public String getId() {
         return id;
     }
@@ -52,22 +52,6 @@ public class OrderItemDto {
         this.itemId = itemId;
     }
 
-    public String getItemName() {
-        return itemName;
-    }
-
-    public void setItemName(String itemName) {
-        this.itemName = itemName;
-    }
-
-    public String getItemCode() {
-        return itemCode;
-    }
-
-    public void setItemCode(String itemCode) {
-        this.itemCode = itemCode;
-    }
-
     public int getQuantity() {
         return quantity;
     }
@@ -84,11 +68,34 @@ public class OrderItemDto {
         this.unitPrice = unitPrice;
     }
 
-    public BigDecimal getSubtotal() {
-        return subtotal;
+    public BigDecimal getTotalPrice() {
+        return totalPrice;
     }
 
-    public void setSubtotal(BigDecimal subtotal) {
-        this.subtotal = subtotal;
+    public void setTotalPrice(BigDecimal totalPrice) {
+        this.totalPrice = totalPrice;
+    }
+
+    public Timestamp getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Timestamp createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Timestamp getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Timestamp updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public void getItemName(String itemName) {
+        this.itemName = itemName;
+    }
+    public void setItemName(String itemName) {
+        this.itemName = itemName;
     }
 }

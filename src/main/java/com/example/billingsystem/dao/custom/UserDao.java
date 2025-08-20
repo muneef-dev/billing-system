@@ -15,4 +15,6 @@ public interface UserDao extends CrudDao<User, String> {
     boolean existsByUsername(String username) throws SQLException, ClassNotFoundException;
     List<User> loadAll() throws SQLException, ClassNotFoundException;
     List<User> search(String id) throws SQLException, ClassNotFoundException;
+    boolean updatePasswordByEmail(String email, String hashedPassword) throws SQLException, ClassNotFoundException;
+    boolean updatePasswordById(String userId, String hashedPassword) throws SQLException, ClassNotFoundException;
 }

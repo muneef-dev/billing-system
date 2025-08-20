@@ -15,14 +15,22 @@ public class ItemDaoImpl implements ItemDao {
 
     @Override
     public boolean create(Item item) throws SQLException, ClassNotFoundException {
-        return CrudUtil.execute("INSERT INTO items (id, item_code, name, description, price, stock_quantity, created_at, updated_at) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        return CrudUtil.execute("INSERT INTO items (id, item_code, item_name, category, author, publisher, description, cover_image_url, unit_price, cost_price, stock_quantity, minimum_stock_level, is_active, created_at, updated_at) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+
                 item.getId(),
                 item.getItemCode(),
-                item.getName(),
+                item.getItemName(),
+                item.getCategory(),
+                item.getAuthor(),
+                item.getPublisher(),
                 item.getDescription(),
-                item.getPrice(),
+                item.getCoverImageUrl(),
+                item.getUnitPrice(),
+                item.getCostPrice(),
                 item.getStockQuantity(),
+                item.getMinimumStockLevel(),
+                item.isActive(),
                 item.getCreatedAt(),
                 item.getUpdatedAt()
         );
@@ -35,12 +43,19 @@ public class ItemDaoImpl implements ItemDao {
 
     @Override
     public boolean update(Item item) throws SQLException, ClassNotFoundException {
-        return CrudUtil.execute("UPDATE items SET item_code=?, name=?, description=?, price=?, stock_quantity=?, updated_at=? WHERE id=?",
+        return CrudUtil.execute("UPDATE items SET item_code=?, item_name=?, category=?, author=?, publisher=?, description=?, cover_image_url=?, unit_price=?, cost_price=?, stock_quantity=?, minimum_stock_level=?, is_active=?, updated_at=? WHERE id=?",
                 item.getItemCode(),
-                item.getName(),
+                item.getItemName(),
+                item.getCategory(),
+                item.getAuthor(),
+                item.getPublisher(),
                 item.getDescription(),
-                item.getPrice(),
+                item.getCoverImageUrl(),
+                item.getUnitPrice(),
+                item.getCostPrice(),
                 item.getStockQuantity(),
+                item.getMinimumStockLevel(),
+                item.isActive(),
                 item.getUpdatedAt(),
                 item.getId()
         );
@@ -62,7 +77,7 @@ public class ItemDaoImpl implements ItemDao {
 
     @Override
     public List<Item> loadAll() throws SQLException, ClassNotFoundException {
-        ResultSet resultSet = CrudUtil.execute("SELECT * FROM items ORDER BY name");
+        ResultSet resultSet = CrudUtil.execute("SELECT * FROM items ORDER BY item_name");
         return extractItemsFromResultSet(resultSet);
     }
 
@@ -78,10 +93,8 @@ public class ItemDaoImpl implements ItemDao {
     @Override
     public List<Item> searchItems(String searchTerm) throws SQLException, ClassNotFoundException {
         searchTerm = "%" + searchTerm + "%";
-        ResultSet resultSet = CrudUtil.execute(
-                "SELECT * FROM items WHERE name LIKE ? OR item_code LIKE ? OR description LIKE ?",
-                searchTerm, searchTerm, searchTerm
-        );
+        ResultSet resultSet = CrudUtil.execute("SELECT * FROM items WHERE (item_name LIKE ? OR item_code LIKE ? OR category LIKE ? OR author LIKE ?) AND is_active=true ORDER BY item_name",
+                searchTerm, searchTerm, searchTerm, searchTerm);
         return extractItemsFromResultSet(resultSet);
     }
 
@@ -106,10 +119,17 @@ public class ItemDaoImpl implements ItemDao {
         return new Item(
                 rs.getString("id"),
                 rs.getString("item_code"),
-                rs.getString("name"),
+                rs.getString("item_name"),
+                rs.getString("category"),
+                rs.getString("author"),
+                rs.getString("publisher"),
                 rs.getString("description"),
-                rs.getBigDecimal("price"),
+                rs.getString("cover_image_url"),
+                rs.getBigDecimal("unit_price"),
+                rs.getBigDecimal("cost_price"),
                 rs.getInt("stock_quantity"),
+                rs.getInt("minimum_stock_level"),
+                rs.getBoolean("is_active"),
                 rs.getTimestamp("created_at"),
                 rs.getTimestamp("updated_at")
         );

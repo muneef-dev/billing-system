@@ -3,7 +3,6 @@ package com.example.billingsystem.controller;
 import com.example.billingsystem.bo.BoFactory;
 import com.example.billingsystem.bo.custom.UserBo;
 import com.example.billingsystem.dto.UserDto;
-import com.example.billingsystem.util.KeyGenerator;
 import com.example.billingsystem.util.PasswordManager;
 
 import jakarta.servlet.ServletException;
@@ -69,11 +68,17 @@ public class RegisterServlet extends HttpServlet {
             password = password.trim();
         }
 
+        // Validate role according to schema enum: ('admin', 'staff')
         if (role != null) {
             role = role.trim();
+            if (!role.equals("admin") && !role.equals("staff")) {
+                role = "staff"; // Default to staff if invalid role
+            }
+        } else {
+            role = "staff"; // Default role from schema
         }
 
-        logger.log(Level.INFO, "Registration attempt for email: {0}, username: {1}", new Object[]{email, username});
+        logger.log(Level.INFO, "Registration attempt for email: {0}, username: {1}, role: {2}", new Object[]{email, username, role});
 
         // Validate required fields
         if (email == null || email.isEmpty()) {
@@ -90,12 +95,10 @@ public class RegisterServlet extends HttpServlet {
 
         try {
             UserDto userDto = new UserDto();
-            userDto.setId(KeyGenerator.generateId());
-            logger.log(Level.INFO, "Generated Id: {0}", userDto.getId());
             userDto.setEmail(email);
             userDto.setUsername(username);
             userDto.setPassword(PasswordManager.encryptPassword(password));
-            userDto.setRole(role);
+            userDto.setRole(role); // Now properly validated according to schema
             userDto.setCreatedAt(new Timestamp(System.currentTimeMillis()));
 
             boolean isCreated = userBo.createUser(userDto);

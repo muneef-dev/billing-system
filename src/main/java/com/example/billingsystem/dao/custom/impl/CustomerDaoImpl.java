@@ -15,13 +15,16 @@ public class CustomerDaoImpl implements CustomerDao {
 
     @Override
     public boolean create(Customer customer) throws SQLException, ClassNotFoundException {
-        return CrudUtil.execute("INSERT INTO customers (id, account_number, name, address, telephone, created_at, updated_at) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        return CrudUtil.execute("INSERT INTO customers (id, account_number, name, email, address, telephone, notes, is_active, created_at, updated_at) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 customer.getId(),
                 customer.getAccountNumber(),
                 customer.getName(),
+                customer.getEmail(),
                 customer.getAddress(),
                 customer.getTelephone(),
+                customer.getNotes(),
+                customer.isActive(),
                 customer.getCreatedAt(),
                 customer.getUpdatedAt()
         );
@@ -34,11 +37,14 @@ public class CustomerDaoImpl implements CustomerDao {
 
     @Override
     public boolean update(Customer customer) throws SQLException, ClassNotFoundException {
-        return CrudUtil.execute("UPDATE customers SET account_number=?, name=?, address=?, telephone=?, updated_at=? WHERE id=?",
+        return CrudUtil.execute("UPDATE customers SET account_number=?, name=?, email=?, address=?, telephone=?, notes=?, is_active=?, updated_at=? WHERE id=?",
                 customer.getAccountNumber(),
                 customer.getName(),
+                customer.getEmail(),
                 customer.getAddress(),
                 customer.getTelephone(),
+                customer.getNotes(),
+                customer.isActive(),
                 customer.getUpdatedAt(),
                 customer.getId()
         );
@@ -97,8 +103,11 @@ public class CustomerDaoImpl implements CustomerDao {
                 resultSet.getString("id"),
                 resultSet.getString("account_number"),
                 resultSet.getString("name"),
+                resultSet.getString("email"),
                 resultSet.getString("address"),
                 resultSet.getString("telephone"),
+                resultSet.getString("notes"),
+                resultSet.getBoolean("is_active"),
                 resultSet.getTimestamp("created_at"),
                 resultSet.getTimestamp("updated_at")
         );

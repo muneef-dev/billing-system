@@ -23,18 +23,20 @@
                         <div>
                             <h3 class="text-sm font-medium text-secondary">Order Date</h3>
                             <p class="mt-1 text-lg font-medium text-primary">
-                                <fmt:formatDate value="${order.orderDate}" pattern="MMM dd, yyyy"/>
+                                <fmt:formatDate value="${order.createdAt}" pattern="MMM dd, yyyy HH:mm"/>
                             </p>
                         </div>
                         <div>
                             <h3 class="text-sm font-medium text-secondary">Customer</h3>
-                            <p class="mt-1 text-lg font-medium text-primary">${order.customerName}</p>
+                            <p class="mt-1 text-lg font-medium text-primary">
+                                ${order.customerName != null ? order.customerName : 'Customer ID: '.concat(order.customerId)}
+                            </p>
                         </div>
                         <div>
                             <h3 class="text-sm font-medium text-secondary">Status</h3>
                             <p class="mt-1">
-                                <span class="badge ${order.status == 'completed' ? 'badge-success' :
-                                                   order.status == 'pending' ? 'badge-warning' : 'badge-danger'}">
+                                <span class="badge ${order.status == 'Paid' ? 'badge-success' :
+                                                   order.status == 'Pending' ? 'badge-warning' : 'badge-danger'}">
                                     ${order.status}
                                 </span>
                             </p>
@@ -45,49 +47,80 @@
                 <!-- Order Items -->
                 <div class="px-6 py-4">
                     <h3 class="text-lg font-medium text-primary mb-4">Order Items</h3>
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Item</th>
-                                <th>Quantity</th>
-                                <th>Price</th>
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <c:forEach var="item" items="${order.items}">
-                                <tr>
-                                    <td class="font-medium text-primary">${item.name}</td>
-                                    <td class="text-secondary">${item.quantity}</td>
-                                    <td class="text-secondary">
-                                        <fmt:formatNumber value="${item.price}" type="currency"/>
-                                    </td>
-                                    <td class="text-secondary">
-                                        <fmt:formatNumber value="${item.quantity * item.price}" type="currency"/>
-                                    </td>
-                                </tr>
-                            </c:forEach>
-                        </tbody>
-                        <tfoot class="bg-tertiary">
-                            <tr>
-                                <td colspan="3" class="text-right font-medium text-primary">Total:</td>
-                                <td class="font-medium text-primary">
-                                    <fmt:formatNumber value="${order.totalAmount}" type="currency"/>
-                                </td>
-                            </tr>
-                        </tfoot>
-                    </table>
+                    <c:choose>
+                        <c:when test="${not empty orderItems}">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Quantity</th>
+                                        <th>Unit Price</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <c:forEach var="item" items="${orderItems}">
+                                        <tr>
+                                            <td class="font-medium text-primary">
+                                                ${item.itemName != null ? item.itemName : 'Item ID: '.concat(item.itemId)}
+                                            </td>
+                                            <td class="text-secondary">${item.quantity}</td>
+                                            <td class="text-secondary">
+                                                <fmt:formatNumber value="${item.unitPrice}" type="currency"/>
+                                            </td>
+                                            <td class="text-secondary">
+                                                <fmt:formatNumber value="${item.totalPrice}" type="currency"/>
+                                            </td>
+                                        </tr>
+                                    </c:forEach>
+                                </tbody>
+                            </table>
+                        </c:when>
+                        <c:otherwise>
+                            <div class="text-center text-secondary py-8">
+                                <i class="fas fa-box-open text-4xl mb-4 text-gray-300"></i>
+                                <div>No items found for this order</div>
+                            </div>
+                        </c:otherwise>
+                    </c:choose>
+                </div>
+
+                <!-- Order Summary -->
+                <div class="px-6 py-4 bg-tertiary border-t border-color">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div class="text-center">
+                            <div class="text-sm text-secondary">Subtotal</div>
+                            <div class="text-lg font-semibold text-primary">
+                                <fmt:formatNumber value="${order.subtotal}" type="currency"/>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-sm text-secondary">Discount</div>
+                            <div class="text-lg font-semibold text-primary">
+                                <fmt:formatNumber value="${order.discountAmount}" type="currency"/>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-sm text-secondary">Total Amount</div>
+                            <div class="text-xl font-bold text-primary">
+                                <fmt:formatNumber value="${order.totalAmount}" type="currency"/>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Actions -->
                 <div class="px-6 py-4 bg-tertiary border-t border-color">
                     <div class="flex justify-end space-x-3">
                         <a href="${pageContext.request.contextPath}/orders" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left mr-2"></i>Back
+                            <i class="fas fa-arrow-left mr-2"></i>Back to Orders
                         </a>
-                        <c:if test="${order.status != 'completed' && order.status != 'cancelled'}">
-                            <button onclick="completeOrder('${order.id}', '${order.orderNumber}')" class="btn btn-success">
-                                <i class="fas fa-check mr-2"></i>Complete Order
+                        <c:if test="${order.status != 'Paid' && order.status != 'Cancelled'}">
+                            <a href="${pageContext.request.contextPath}/orders/edit/${order.id}" class="btn btn-primary">
+                                <i class="fas fa-edit mr-2"></i>Edit Order
+                            </a>
+                            <button onclick="markPaidOrder('${order.id}', '${order.orderNumber}')" class="btn btn-success">
+                                <i class="fas fa-check mr-2"></i>Mark as Paid
                             </button>
                             <button onclick="cancelOrder('${order.id}', '${order.orderNumber}')" class="btn btn-danger">
                                 <i class="fas fa-times mr-2"></i>Cancel Order
@@ -108,13 +141,13 @@
                 }
             });
 
-            async function completeOrder(id, orderNumber) {
+            async function markPaidOrder(id, orderNumber) {
                 try {
                     const confirmed = await showConfirmDialog(
-                        'Complete Order',
-                        `Are you sure you want to mark order "${orderNumber}" as completed? This action cannot be undone.`,
+                        'Mark Order as Paid',
+                        `Are you sure you want to mark order "${orderNumber}" as paid? This action cannot be undone.`,
                         {
-                            confirmText: 'Complete Order',
+                            confirmText: 'Mark as Paid',
                             cancelText: 'Cancel',
                             confirmStyle: 'success',
                             icon: 'fas fa-check-circle'
@@ -125,27 +158,31 @@
                         // Show loading state
                         const btn = event.target.closest('button');
                         const originalText = btn.innerHTML;
-                        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Completing...';
+                        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
                         btn.disabled = true;
 
                         try {
-                            const response = await fetch('${pageContext.request.contextPath}/orders/complete/' + id, {
-                                method: 'POST'
+                            const response = await fetch('${pageContext.request.contextPath}/orders/edit/' + id, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                },
+                                body: 'status=Paid'
                             });
 
                             if (response.ok) {
-                                showSuccessToast('Order completed successfully');
+                                showSuccessToast('Order marked as paid successfully');
                                 setTimeout(() => {
                                     window.location.reload();
                                 }, 1000);
                             } else {
-                                showErrorToast('Failed to complete order. Please try again.');
+                                showErrorToast('Failed to update order status. Please try again.');
                                 btn.innerHTML = originalText;
                                 btn.disabled = false;
                             }
                         } catch (error) {
                             console.error('Network error:', error);
-                            showErrorToast('An error occurred while completing the order');
+                            showErrorToast('An error occurred while updating the order');
                             btn.innerHTML = originalText;
                             btn.disabled = false;
                         }
@@ -153,21 +190,8 @@
                 } catch (error) {
                     console.error('Dialog error:', error);
                     // Fallback to basic confirm
-                    if (confirm('Complete Order?\n\nAre you sure you want to mark order "' + orderNumber + '" as completed?')) {
-                        try {
-                            const response = await fetch('${pageContext.request.contextPath}/orders/complete/' + id, {
-                                method: 'POST'
-                            });
-
-                            if (response.ok) {
-                                alert('Order completed successfully');
-                                window.location.reload();
-                            } else {
-                                alert('Failed to complete order. Please try again.');
-                            }
-                        } catch (error) {
-                            alert('An error occurred while completing the order');
-                        }
+                    if (confirm('Mark as Paid?\n\nAre you sure you want to mark order "' + orderNumber + '" as paid?')) {
+                        window.location.href = '${pageContext.request.contextPath}/orders/edit/' + id + '?status=Paid';
                     }
                 }
             }
@@ -176,7 +200,7 @@
                 try {
                     const confirmed = await showConfirmDialog(
                         'Cancel Order',
-                        `Are you sure you want to cancel order "${orderNumber}"? This action cannot be undone and may affect inventory.`,
+                        `Are you sure you want to cancel order "${orderNumber}"? This action will set the status to Cancelled.`,
                         {
                             confirmText: 'Cancel Order',
                             cancelText: 'Keep Order',
@@ -193,8 +217,12 @@
                         btn.disabled = true;
 
                         try {
-                            const response = await fetch('${pageContext.request.contextPath}/orders/cancel/' + id, {
-                                method: 'POST'
+                            const response = await fetch('${pageContext.request.contextPath}/orders/edit/' + id, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                },
+                                body: 'status=Cancelled'
                             });
 
                             if (response.ok) {
@@ -218,20 +246,7 @@
                     console.error('Dialog error:', error);
                     // Fallback to basic confirm
                     if (confirm('Cancel Order?\n\nAre you sure you want to cancel order "' + orderNumber + '"?')) {
-                        try {
-                            const response = await fetch('${pageContext.request.contextPath}/orders/cancel/' + id, {
-                                method: 'POST'
-                            });
-
-                            if (response.ok) {
-                                alert('Order cancelled successfully');
-                                window.location.reload();
-                            } else {
-                                alert('Failed to cancel order. Please try again.');
-                            }
-                        } catch (error) {
-                            alert('An error occurred while cancelling the order');
-                        }
+                        window.location.href = '${pageContext.request.contextPath}/orders/edit/' + id + '?status=Cancelled';
                     }
                 }
             }

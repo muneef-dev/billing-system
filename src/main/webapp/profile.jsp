@@ -92,31 +92,78 @@
                     <div class="card p-6">
                         <h3 class="text-lg font-semibold text-primary mb-4">Change Password</h3>
 
-                        <form id="passwordForm" action="${pageContext.request.contextPath}/profile/change-password" method="POST">
-                            <div class="space-y-4">
-                                <div>
-                                    <label for="currentPassword" class="form-label">Current Password</label>
-                                    <input type="password" id="currentPassword" name="currentPassword"
-                                           class="form-input" required>
+                        <!-- OTP Verification Step -->
+                        <div id="otpVerificationStep" class="mb-6">
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                                <div class="flex items-center mb-2">
+                                    <i class="fas fa-shield-alt text-blue-600 mr-2"></i>
+                                    <span class="text-sm font-medium text-blue-800">Security Verification Required</span>
                                 </div>
-
-                                <div>
-                                    <label for="newPassword" class="form-label">New Password</label>
-                                    <input type="password" id="newPassword" name="newPassword"
-                                           class="form-input" required>
-                                </div>
-
-                                <div>
-                                    <label for="confirmPassword" class="form-label">Confirm New Password</label>
-                                    <input type="password" id="confirmPassword" name="confirmPassword"
-                                           class="form-input" required>
-                                </div>
-
-                                <button type="submit" class="btn btn-warning w-full">
-                                    <i class="fas fa-lock mr-2"></i>Update Password
-                                </button>
+                                <p class="text-sm text-blue-600">For your security, we need to verify your email before changing your password.</p>
                             </div>
-                        </form>
+
+                            <button type="button" id="sendOtpBtn" class="btn btn-primary w-full mb-3">
+                                <i class="fas fa-envelope mr-2"></i>Send Verification Code
+                            </button>
+
+                            <div id="otpInputSection" class="hidden">
+                                <div class="mb-3">
+                                    <label for="profileOtp" class="form-label">Verification Code</label>
+                                    <input type="text" id="profileOtp" maxlength="6"
+                                           class="form-input text-center tracking-widest text-lg"
+                                           placeholder="123456">
+                                </div>
+
+                                <div class="flex gap-2 mb-3">
+                                    <button type="button" id="verifyOtpBtn" class="btn btn-success flex-1">
+                                        <i class="fas fa-check mr-2"></i>Verify
+                                    </button>
+                                    <button type="button" id="resendOtpBtn" class="btn btn-secondary" disabled>
+                                        <i class="fas fa-redo mr-1"></i>Resend
+                                    </button>
+                                </div>
+
+                                <div class="text-center">
+                                    <span class="text-sm text-secondary" id="otpCountdown"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Password Change Form (initially hidden) -->
+                        <div id="passwordChangeSection" class="hidden">
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                                <div class="flex items-center">
+                                    <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                                    <span class="text-sm text-green-800">Email verified! You can now change your password.</span>
+                                </div>
+                            </div>
+
+                            <form id="passwordForm" action="${pageContext.request.contextPath}/profile/change-password" method="POST">
+                                <div class="space-y-4">
+                                    <div>
+                                        <label for="currentPassword" class="form-label">Current Password</label>
+                                        <input type="password" id="currentPassword" name="currentPassword"
+                                               class="form-input" required>
+                                    </div>
+
+                                    <div>
+                                        <label for="newPassword" class="form-label">New Password</label>
+                                        <input type="password" id="newPassword" name="newPassword"
+                                               class="form-input" required minlength="4">
+                                    </div>
+
+                                    <div>
+                                        <label for="confirmPassword" class="form-label">Confirm New Password</label>
+                                        <input type="password" id="confirmPassword" name="confirmPassword"
+                                               class="form-input" required>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-warning w-full">
+                                        <i class="fas fa-lock mr-2"></i>Update Password
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
 
                     <!-- Account Stats Card -->
@@ -156,6 +203,12 @@
                 const usernameInput = document.getElementById('username');
                 const profileForm = document.getElementById('profileForm');
                 const passwordForm = document.getElementById('passwordForm');
+                const sendOtpBtn = document.getElementById('sendOtpBtn');
+                const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+                const resendOtpBtn = document.getElementById('resendOtpBtn');
+                const otpInputSection = document.getElementById('otpInputSection');
+                const passwordChangeSection = document.getElementById('passwordChangeSection');
+                const otpCountdown = document.getElementById('otpCountdown');
 
                 // Store original values
                 const originalEmail = emailInput.value;
@@ -212,6 +265,136 @@
                     }
                 });
 
+                // OTP verification flow
+                let otpSent = false;
+                let otpVerified = false;
+                let otpTimeout;
+
+                sendOtpBtn.addEventListener('click', function() {
+                    sendOtpBtn.disabled = true;
+                    sendOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
+
+                    // Send OTP request to server
+                    fetch('${pageContext.request.contextPath}/profile/send-otp', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            otpSent = true;
+                            otpInputSection.classList.remove('hidden');
+                            sendOtpBtn.innerHTML = '<i class="fas fa-check mr-2"></i>Code Sent';
+                            startOtpCountdown(300); // 5 minutes
+                            if (typeof showSuccessToast !== 'undefined') {
+                                showSuccessToast('Verification code sent to your email');
+                            }
+                        } else {
+                            sendOtpBtn.disabled = false;
+                            sendOtpBtn.innerHTML = '<i class="fas fa-envelope mr-2"></i>Send Verification Code';
+                            if (typeof showErrorToast !== 'undefined') {
+                                showErrorToast(data.message || 'Failed to send verification code');
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        sendOtpBtn.disabled = false;
+                        sendOtpBtn.innerHTML = '<i class="fas fa-envelope mr-2"></i>Send Verification Code';
+                        if (typeof showErrorToast !== 'undefined') {
+                            showErrorToast('Failed to send verification code');
+                        }
+                    });
+                });
+
+                verifyOtpBtn.addEventListener('click', function() {
+                    const otpInput = document.getElementById('profileOtp').value;
+
+                    if (!otpInput || otpInput.length !== 6) {
+                        if (typeof showErrorToast !== 'undefined') {
+                            showErrorToast('Please enter a valid 6-digit code');
+                        }
+                        return;
+                    }
+
+                    verifyOtpBtn.disabled = true;
+                    verifyOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Verifying...';
+
+                    // Verify OTP with server
+                    fetch('${pageContext.request.contextPath}/profile/verify-otp', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: 'otp=' + encodeURIComponent(otpInput)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            otpVerified = true;
+                            clearInterval(otpTimeout);
+                            document.getElementById('otpVerificationStep').classList.add('hidden');
+                            passwordChangeSection.classList.remove('hidden');
+                            if (typeof showSuccessToast !== 'undefined') {
+                                showSuccessToast('Email verified successfully!');
+                            }
+                        } else {
+                            verifyOtpBtn.disabled = false;
+                            verifyOtpBtn.innerHTML = '<i class="fas fa-check mr-2"></i>Verify';
+                            if (typeof showErrorToast !== 'undefined') {
+                                showErrorToast(data.message || 'Invalid verification code');
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        verifyOtpBtn.disabled = false;
+                        verifyOtpBtn.innerHTML = '<i class="fas fa-check mr-2"></i>Verify';
+                        if (typeof showErrorToast !== 'undefined') {
+                            showErrorToast('Failed to verify code');
+                        }
+                    });
+                });
+
+                resendOtpBtn.addEventListener('click', function() {
+                    resendOtpBtn.disabled = true;
+                    resendOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Sending...';
+
+                    // Resend OTP
+                    fetch('${pageContext.request.contextPath}/profile/send-otp', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            resendOtpBtn.innerHTML = '<i class="fas fa-check mr-1"></i>Sent';
+                            startOtpCountdown(300); // 5 minutes
+                            if (typeof showSuccessToast !== 'undefined') {
+                                showSuccessToast('Verification code resent successfully');
+                            }
+                        } else {
+                            resendOtpBtn.disabled = false;
+                            resendOtpBtn.innerHTML = '<i class="fas fa-redo mr-1"></i>Resend';
+                            if (typeof showErrorToast !== 'undefined') {
+                                showErrorToast(data.message || 'Failed to resend code');
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        resendOtpBtn.disabled = false;
+                        resendOtpBtn.innerHTML = '<i class="fas fa-redo mr-1"></i>Resend';
+                        if (typeof showErrorToast !== 'undefined') {
+                            showErrorToast('Failed to resend code');
+                        }
+                    });
+                });
+
                 // Password form submission with confirmation
                 passwordForm.addEventListener('submit', async function(e) {
                     e.preventDefault();
@@ -221,18 +404,18 @@
 
                     // Client-side validation
                     if (newPassword !== confirmPassword) {
-                        try {
+                        if (typeof showErrorToast !== 'undefined') {
                             showErrorToast('Passwords do not match');
-                        } catch (error) {
+                        } else {
                             alert('Passwords do not match');
                         }
                         return;
                     }
 
                     if (newPassword.length < 4) {
-                        try {
+                        if (typeof showErrorToast !== 'undefined') {
                             showErrorToast('Password must be at least 4 characters long');
-                        } catch (error) {
+                        } else {
                             alert('Password must be at least 4 characters long');
                         }
                         return;
@@ -271,6 +454,11 @@
                     } else {
                         confirmPasswordInput.setCustomValidity('');
                     }
+                });
+
+                // OTP input formatting
+                document.getElementById('profileOtp').addEventListener('input', function(e) {
+                    this.value = this.value.replace(/\D/g, '');
                 });
             });
         </script>
