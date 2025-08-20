@@ -24,8 +24,9 @@ public class ItemDto {
         this.description = description;
         this.price = price;
         this.stockQuantity = stockQuantity;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
+    }
+
+    public ItemDto(String id, String s, String name, String description, BigDecimal price, int quantity) {
     }
 
     // Getters and Setters

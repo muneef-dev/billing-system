@@ -90,13 +90,24 @@ public class ItemServlet extends HttpServlet {
     }
 
     private void handleCreateItem(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        String code = request.getParameter("code");
+        String name = request.getParameter("name");
+        String priceStr = request.getParameter("price");
+        String stockQuantityStr = request.getParameter("stockQuantity");
+
+        // Validate required fields
+        if (code == null || name == null || priceStr == null || stockQuantityStr == null) {
+            request.setAttribute("error", "All fields are required");
+            handleNewItemForm(request, response);
+            return;
+        }
+
         ItemDto itemDto = new ItemDto();
         itemDto.setId(KeyGenerator.generateId());
-        itemDto.setItemCode(request.getParameter("itemCode").trim());
-        itemDto.setName(request.getParameter("name").trim());
-        itemDto.setDescription(request.getParameter("description").trim());
-        itemDto.setPrice(new BigDecimal(request.getParameter("price").trim()));
-        itemDto.setStockQuantity(Integer.parseInt(request.getParameter("stockQuantity").trim()));
+        itemDto.setItemCode(code.trim());
+        itemDto.setName(name.trim());
+        itemDto.setPrice(new BigDecimal(priceStr.trim()));
+        itemDto.setStockQuantity(Integer.parseInt(stockQuantityStr.trim()));
 
         if (itemBo.createItem(itemDto)) {
             response.sendRedirect(request.getContextPath() + "/items");
@@ -110,11 +121,22 @@ public class ItemServlet extends HttpServlet {
     private void handleUpdateItem(HttpServletRequest request, HttpServletResponse response, String id) throws Exception {
         ItemDto itemDto = itemBo.getItem(id);
         if (itemDto != null) {
-            itemDto.setItemCode(request.getParameter("itemCode").trim());
-            itemDto.setName(request.getParameter("name").trim());
-            itemDto.setDescription(request.getParameter("description").trim());
-            itemDto.setPrice(new BigDecimal(request.getParameter("price").trim()));
-            itemDto.setStockQuantity(Integer.parseInt(request.getParameter("stockQuantity").trim()));
+            String code = request.getParameter("code");
+            String name = request.getParameter("name");
+            String priceStr = request.getParameter("price");
+            String stockQuantityStr = request.getParameter("stockQuantity");
+
+            // Validate required fields
+            if (code == null || name == null || priceStr == null || stockQuantityStr == null) {
+                request.setAttribute("error", "All fields are required");
+                handleEditItemForm(request, response, id);
+                return;
+            }
+
+            itemDto.setItemCode(code.trim());
+            itemDto.setName(name.trim());
+            itemDto.setPrice(new BigDecimal(priceStr.trim()));
+            itemDto.setStockQuantity(Integer.parseInt(stockQuantityStr.trim()));
 
             if (itemBo.updateItem(itemDto)) {
                 response.sendRedirect(request.getContextPath() + "/items");
