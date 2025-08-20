@@ -52,7 +52,7 @@
                                        class="text-primary hover:text-primary-hover transition-colors">
                                         <i class="fas fa-edit mr-1"></i>Edit
                                     </a>
-                                    <a href="#" onclick="deleteItem('${item.id}')"
+                                    <a href="#" onclick="deleteItem('${item.id}', '${item.name}')"
                                        class="text-danger hover:text-danger-hover transition-colors">
                                         <i class="fas fa-trash mr-1"></i>Delete
                                     </a>
@@ -67,17 +67,55 @@
 
     <jsp:attribute name="scripts">
         <script>
-            function deleteItem(id) {
-                if (confirm('Are you sure you want to delete this item?')) {
-                    fetch('${pageContext.request.contextPath}/items/delete/' + id, {
-                        method: 'POST'
-                    }).then(response => {
-                        if (response.ok) {
-                            window.location.reload();
-                        } else {
-                            alert('Failed to delete item');
+            document.addEventListener('DOMContentLoaded', function() {
+                // Check if functions are available
+                if (typeof showDeleteConfirm === 'undefined' || typeof showSuccessToast === 'undefined') {
+                    console.error('Toast and dialog functions not loaded. Please check script.js');
+                }
+            });
+
+            async function deleteItem(id, itemName) {
+                try {
+                    const confirmed = await showDeleteConfirm('Item', `This will permanently remove "${itemName}" and cannot be undone.`);
+
+                    if (confirmed) {
+                        try {
+                            const response = await fetch('${pageContext.request.contextPath}/items/delete/' + id, {
+                                method: 'POST'
+                            });
+
+                            if (response.ok) {
+                                showSuccessToast('Item deleted successfully');
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 1000);
+                            } else {
+                                showErrorToast('Failed to delete item. Please try again.');
+                            }
+                        } catch (error) {
+                            console.error('Network error:', error);
+                            showErrorToast('An error occurred while deleting the item');
                         }
-                    });
+                    }
+                } catch (error) {
+                    console.error('Dialog error:', error);
+                    // Fallback to basic confirm
+                    if (confirm('Delete Item?\n\nAre you sure you want to delete "' + itemName + '"? This action cannot be undone.')) {
+                        try {
+                            const response = await fetch('${pageContext.request.contextPath}/items/delete/' + id, {
+                                method: 'POST'
+                            });
+
+                            if (response.ok) {
+                                alert('Item deleted successfully');
+                                window.location.reload();
+                            } else {
+                                alert('Failed to delete item. Please try again.');
+                            }
+                        } catch (error) {
+                            alert('An error occurred while deleting the item');
+                        }
+                    }
                 }
             }
         </script>

@@ -86,10 +86,10 @@
                             <i class="fas fa-arrow-left mr-2"></i>Back
                         </a>
                         <c:if test="${order.status != 'completed' && order.status != 'cancelled'}">
-                            <button onclick="completeOrder('${order.id}')" class="btn btn-success">
+                            <button onclick="completeOrder('${order.id}', '${order.orderNumber}')" class="btn btn-success">
                                 <i class="fas fa-check mr-2"></i>Complete Order
                             </button>
-                            <button onclick="cancelOrder('${order.id}')" class="btn btn-danger">
+                            <button onclick="cancelOrder('${order.id}', '${order.orderNumber}')" class="btn btn-danger">
                                 <i class="fas fa-times mr-2"></i>Cancel Order
                             </button>
                         </c:if>
@@ -101,31 +101,138 @@
 
     <jsp:attribute name="scripts">
         <script>
-            function completeOrder(id) {
-                if (confirm('Are you sure you want to mark this order as completed?')) {
-                    fetch('${pageContext.request.contextPath}/orders/complete/' + id, {
-                        method: 'POST'
-                    }).then(response => {
-                        if (response.ok) {
-                            window.location.reload();
-                        } else {
-                            alert('Failed to complete order');
+            document.addEventListener('DOMContentLoaded', function() {
+                // Check if functions are available
+                if (typeof showConfirmDialog === 'undefined' || typeof showSuccessToast === 'undefined') {
+                    console.error('Toast and dialog functions not loaded. Please check script.js');
+                }
+            });
+
+            async function completeOrder(id, orderNumber) {
+                try {
+                    const confirmed = await showConfirmDialog(
+                        'Complete Order',
+                        `Are you sure you want to mark order "${orderNumber}" as completed? This action cannot be undone.`,
+                        {
+                            confirmText: 'Complete Order',
+                            cancelText: 'Cancel',
+                            confirmStyle: 'success',
+                            icon: 'fas fa-check-circle'
                         }
-                    });
+                    );
+
+                    if (confirmed) {
+                        // Show loading state
+                        const btn = event.target.closest('button');
+                        const originalText = btn.innerHTML;
+                        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Completing...';
+                        btn.disabled = true;
+
+                        try {
+                            const response = await fetch('${pageContext.request.contextPath}/orders/complete/' + id, {
+                                method: 'POST'
+                            });
+
+                            if (response.ok) {
+                                showSuccessToast('Order completed successfully');
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 1000);
+                            } else {
+                                showErrorToast('Failed to complete order. Please try again.');
+                                btn.innerHTML = originalText;
+                                btn.disabled = false;
+                            }
+                        } catch (error) {
+                            console.error('Network error:', error);
+                            showErrorToast('An error occurred while completing the order');
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Dialog error:', error);
+                    // Fallback to basic confirm
+                    if (confirm('Complete Order?\n\nAre you sure you want to mark order "' + orderNumber + '" as completed?')) {
+                        try {
+                            const response = await fetch('${pageContext.request.contextPath}/orders/complete/' + id, {
+                                method: 'POST'
+                            });
+
+                            if (response.ok) {
+                                alert('Order completed successfully');
+                                window.location.reload();
+                            } else {
+                                alert('Failed to complete order. Please try again.');
+                            }
+                        } catch (error) {
+                            alert('An error occurred while completing the order');
+                        }
+                    }
                 }
             }
 
-            function cancelOrder(id) {
-                if (confirm('Are you sure you want to cancel this order?')) {
-                    fetch('${pageContext.request.contextPath}/orders/cancel/' + id, {
-                        method: 'POST'
-                    }).then(response => {
-                        if (response.ok) {
-                            window.location.reload();
-                        } else {
-                            alert('Failed to cancel order');
+            async function cancelOrder(id, orderNumber) {
+                try {
+                    const confirmed = await showConfirmDialog(
+                        'Cancel Order',
+                        `Are you sure you want to cancel order "${orderNumber}"? This action cannot be undone and may affect inventory.`,
+                        {
+                            confirmText: 'Cancel Order',
+                            cancelText: 'Keep Order',
+                            confirmStyle: 'danger',
+                            icon: 'fas fa-ban'
                         }
-                    });
+                    );
+
+                    if (confirmed) {
+                        // Show loading state
+                        const btn = event.target.closest('button');
+                        const originalText = btn.innerHTML;
+                        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Cancelling...';
+                        btn.disabled = true;
+
+                        try {
+                            const response = await fetch('${pageContext.request.contextPath}/orders/cancel/' + id, {
+                                method: 'POST'
+                            });
+
+                            if (response.ok) {
+                                showSuccessToast('Order cancelled successfully');
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 1000);
+                            } else {
+                                showErrorToast('Failed to cancel order. Please try again.');
+                                btn.innerHTML = originalText;
+                                btn.disabled = false;
+                            }
+                        } catch (error) {
+                            console.error('Network error:', error);
+                            showErrorToast('An error occurred while cancelling the order');
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Dialog error:', error);
+                    // Fallback to basic confirm
+                    if (confirm('Cancel Order?\n\nAre you sure you want to cancel order "' + orderNumber + '"?')) {
+                        try {
+                            const response = await fetch('${pageContext.request.contextPath}/orders/cancel/' + id, {
+                                method: 'POST'
+                            });
+
+                            if (response.ok) {
+                                alert('Order cancelled successfully');
+                                window.location.reload();
+                            } else {
+                                alert('Failed to cancel order. Please try again.');
+                            }
+                        } catch (error) {
+                            alert('An error occurred while cancelling the order');
+                        }
+                    }
                 }
             }
         </script>
