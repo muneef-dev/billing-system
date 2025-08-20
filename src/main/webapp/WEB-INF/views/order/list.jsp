@@ -65,17 +65,64 @@
 
     <jsp:attribute name="scripts">
         <script>
-            function cancelOrder(id) {
-                if (confirm('Are you sure you want to cancel this order?')) {
-                    fetch('${pageContext.request.contextPath}/orders/cancel/' + id, {
-                        method: 'POST'
-                    }).then(response => {
-                        if (response.ok) {
-                            window.location.reload();
-                        } else {
-                            alert('Failed to cancel order');
+            document.addEventListener('DOMContentLoaded', function() {
+                // Check if functions are available
+                if (typeof showConfirmDialog === 'undefined' || typeof showSuccessToast === 'undefined') {
+                    console.error('Toast and dialog functions not loaded. Please check script.js');
+                }
+            });
+
+            async function cancelOrder(id) {
+                try {
+                    const confirmed = await showConfirmDialog(
+                        'Cancel Order',
+                        'Are you sure you want to cancel this order? This action cannot be undone.',
+                        {
+                            confirmText: 'Cancel Order',
+                            cancelText: 'Keep Order',
+                            confirmStyle: 'danger',
+                            icon: 'fas fa-ban'
                         }
-                    });
+                    );
+
+                    if (confirmed) {
+                        try {
+                            const response = await fetch('${pageContext.request.contextPath}/orders/cancel/' + id, {
+                                method: 'POST'
+                            });
+
+                            if (response.ok) {
+                                showSuccessToast('Order cancelled successfully');
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 1000);
+                            } else {
+                                showErrorToast('Failed to cancel order. Please try again.');
+                            }
+                        } catch (error) {
+                            console.error('Network error:', error);
+                            showErrorToast('An error occurred while cancelling the order');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Dialog error:', error);
+                    // Fallback to basic confirm
+                    if (confirm('Cancel Order?\n\nAre you sure you want to cancel this order? This action cannot be undone.')) {
+                        try {
+                            const response = await fetch('${pageContext.request.contextPath}/orders/cancel/' + id, {
+                                method: 'POST'
+                            });
+
+                            if (response.ok) {
+                                alert('Order cancelled successfully');
+                                window.location.reload();
+                            } else {
+                                alert('Failed to cancel order. Please try again.');
+                            }
+                        } catch (error) {
+                            alert('An error occurred while cancelling the order');
+                        }
+                    }
                 }
             }
         </script>

@@ -14,6 +14,31 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- Common JavaScript utilities -->
+    <script src="${pageContext.request.contextPath}/assets/script.js"></script>
+
+    <!-- Server-side message handling -->
+    <c:if test="${not empty requestScope.success}">
+        <script>
+            window.serverMessage = { type: 'success', message: '${requestScope.success}' };
+        </script>
+    </c:if>
+    <c:if test="${not empty requestScope.error}">
+        <script>
+            window.serverMessage = { type: 'error', message: '${requestScope.error}' };
+        </script>
+    </c:if>
+    <c:if test="${not empty requestScope.warning}">
+        <script>
+            window.serverMessage = { type: 'warning', message: '${requestScope.warning}' };
+        </script>
+    </c:if>
+    <c:if test="${not empty requestScope.info}">
+        <script>
+            window.serverMessage = { type: 'info', message: '${requestScope.info}' };
+        </script>
+    </c:if>
 </head>
 <body class="bg-primary text-primary">
     <c:choose>

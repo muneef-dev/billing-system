@@ -96,45 +96,135 @@
                 };
             </c:forEach>
 
+            // Check if functions are available
+            document.addEventListener('DOMContentLoaded', function() {
+                if (typeof showConfirmDialog === 'undefined' || typeof showSuccessToast === 'undefined') {
+                    console.error('Toast and dialog functions not loaded. Please check script.js');
+                }
+
+                updateOrderTable();
+
+                // Add enter key support for quantity input
+                document.getElementById('quantity').addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addItem();
+                    }
+                });
+            });
+
             function addItem() {
                 const itemSelect = document.getElementById('itemSelect');
                 const quantity = document.getElementById('quantity');
                 const itemId = itemSelect.value;
 
                 if (!itemId) {
-                    alert('Please select an item');
+                    try {
+                        showWarningToast('Please select an item first');
+                    } catch (error) {
+                        alert('Please select an item first');
+                    }
                     return;
                 }
 
                 const item = itemsData[itemId];
                 const qty = parseInt(quantity.value);
 
-                if (qty > item.stock) {
-                    alert('Not enough stock available');
+                if (qty <= 0) {
+                    try {
+                        showWarningToast('Please enter a valid quantity');
+                    } catch (error) {
+                        alert('Please enter a valid quantity');
+                    }
                     return;
                 }
 
-                orderItems.push({
-                    itemId: itemId,
-                    name: item.name,
-                    quantity: qty,
-                    price: item.price
-                });
+                if (qty > item.stock) {
+                    try {
+                        showErrorToast(`Not enough stock available. Only ${item.stock} items in stock.`);
+                    } catch (error) {
+                        alert(`Not enough stock available. Only ${item.stock} items in stock.`);
+                    }
+                    return;
+                }
+
+                // Check if item already exists in order
+                const existingItemIndex = orderItems.findIndex(orderItem => orderItem.itemId === itemId);
+                if (existingItemIndex !== -1) {
+                    const totalQuantity = orderItems[existingItemIndex].quantity + qty;
+                    if (totalQuantity > item.stock) {
+                        try {
+                            showErrorToast(`Cannot add ${qty} more items. Only ${item.stock - orderItems[existingItemIndex].quantity} items available.`);
+                        } catch (error) {
+                            alert(`Cannot add ${qty} more items. Only ${item.stock - orderItems[existingItemIndex].quantity} items available.`);
+                        }
+                        return;
+                    }
+                    orderItems[existingItemIndex].quantity = totalQuantity;
+                    try {
+                        showInfoToast(`Updated quantity for ${item.name}`);
+                    } catch (error) {
+                        // Silent fallback for info toast
+                    }
+                } else {
+                    orderItems.push({
+                        itemId: itemId,
+                        name: item.name,
+                        quantity: qty,
+                        price: item.price
+                    });
+                    try {
+                        showSuccessToast(`${item.name} added to order`);
+                    } catch (error) {
+                        // Silent fallback for success toast
+                    }
+                }
 
                 updateOrderTable();
                 itemSelect.value = '';
                 quantity.value = 1;
             }
 
-            function removeItem(index) {
-                orderItems.splice(index, 1);
-                updateOrderTable();
+            async function removeItem(index) {
+                const item = orderItems[index];
+
+                try {
+                    const confirmed = await showConfirmDialog(
+                        'Remove Item',
+                        `Are you sure you want to remove "${item.name}" from this order?`,
+                        {
+                            confirmText: 'Remove',
+                            cancelText: 'Cancel',
+                            confirmStyle: 'danger',
+                            icon: 'fas fa-trash-alt'
+                        }
+                    );
+
+                    if (confirmed) {
+                        orderItems.splice(index, 1);
+                        updateOrderTable();
+                        showInfoToast(`${item.name} removed from order`);
+                    }
+                } catch (error) {
+                    console.error('Dialog error:', error);
+                    // Fallback to basic confirm
+                    if (confirm(`Remove Item?\n\nAre you sure you want to remove "${item.name}" from this order?`)) {
+                        orderItems.splice(index, 1);
+                        updateOrderTable();
+                    }
+                }
             }
 
             function updateOrderTable() {
                 const tbody = document.getElementById('orderItems');
                 const totalSpan = document.getElementById('orderTotal');
                 let total = 0;
+
+                if (orderItems.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-secondary py-8">No items added yet</td></tr>';
+                    totalSpan.textContent = '0.00';
+                    return;
+                }
 
                 tbody.innerHTML = orderItems.map((item, index) => {
                     const itemTotal = item.quantity * item.price;
@@ -157,18 +247,57 @@
                 totalSpan.textContent = total.toFixed(2);
             }
 
-            function submitOrder() {
+            async function submitOrder() {
                 const customerId = document.getElementById('customerId').value;
 
+                // Validation
                 if (!customerId) {
-                    alert('Please select a customer');
+                    try {
+                        showWarningToast('Please select a customer first');
+                    } catch (error) {
+                        alert('Please select a customer first');
+                    }
                     return;
                 }
 
                 if (orderItems.length === 0) {
-                    alert('Please add at least one item to the order');
+                    try {
+                        showWarningToast('Please add at least one item to the order');
+                    } catch (error) {
+                        alert('Please add at least one item to the order');
+                    }
                     return;
                 }
+
+                const total = orderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+
+                try {
+                    // Show confirmation dialog
+                    const confirmed = await showConfirmDialog(
+                        'Create Order',
+                        `Are you sure you want to create this order with ${orderItems.length} item(s) for a total of $${total.toFixed(2)}?`,
+                        {
+                            confirmText: 'Create Order',
+                            cancelText: 'Cancel',
+                            confirmStyle: 'success',
+                            icon: 'fas fa-shopping-cart'
+                        }
+                    );
+
+                    if (!confirmed) return;
+                } catch (error) {
+                    console.error('Dialog error:', error);
+                    // Fallback to basic confirm
+                    if (!confirm(`Create Order?\n\nAre you sure you want to create this order with ${orderItems.length} item(s) for a total of $${total.toFixed(2)}?`)) {
+                        return;
+                    }
+                }
+
+                // Get the submit button from event context or find it
+                const submitBtn = document.querySelector('button[onclick="submitOrder()"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creating Order...';
+                submitBtn.disabled = true;
 
                 const orderData = {
                     customerId: customerId,
@@ -178,23 +307,44 @@
                     }))
                 };
 
-                fetch('${pageContext.request.contextPath}/orders/create', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(orderData)
-                })
-                .then(response => {
+                try {
+                    const response = await fetch('${pageContext.request.contextPath}/orders/create', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(orderData)
+                    });
+
                     if (response.ok) {
-                        window.location.href = '${pageContext.request.contextPath}/orders';
+                        try {
+                            showSuccessToast('Order created successfully! Redirecting...');
+                        } catch (error) {
+                            alert('Order created successfully! Redirecting...');
+                        }
+                        setTimeout(() => {
+                            window.location.href = '${pageContext.request.contextPath}/orders';
+                        }, 1500);
                     } else {
-                        throw new Error('Failed to create order');
+                        const errorText = await response.text();
+                        try {
+                            showErrorToast(errorText || 'Failed to create order. Please try again.');
+                        } catch (error) {
+                            alert(errorText || 'Failed to create order. Please try again.');
+                        }
                     }
-                })
-                .catch(error => {
-                    alert(error.message);
-                });
+                } catch (error) {
+                    console.error('Network error:', error);
+                    try {
+                        showErrorToast('An error occurred while creating the order. Please try again.');
+                    } catch (error) {
+                        alert('An error occurred while creating the order. Please try again.');
+                    }
+                } finally {
+                    // Restore button state
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }
             }
         </script>
     </jsp:attribute>

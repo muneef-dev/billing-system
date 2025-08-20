@@ -2,7 +2,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib tagdir="/WEB-INF/tags" prefix="t" %>
 
-<t:layout title="User Profile" layout="main">
+<t:layout title="User Profile" layout="dashboard">
     <jsp:attribute name="content">
         <div class="container mx-auto px-6 py-8">
             <!-- Page Header -->
@@ -83,19 +83,7 @@
                             </div>
                         </form>
 
-                        <!-- Success/Error Messages -->
-                        <div class="mt-4">
-                            <c:if test="${not empty requestScope.success}">
-                                <div class="text-success text-sm mb-4">
-                                    <i class="fas fa-check-circle mr-2"></i>${requestScope.success}
-                                </div>
-                            </c:if>
-                            <c:if test="${not empty requestScope.error}">
-                                <div class="text-danger text-sm mb-4">
-                                    <i class="fas fa-exclamation-triangle mr-2"></i>${requestScope.error}
-                                </div>
-                            </c:if>
-                        </div>
+                        <!-- Success/Error Messages are now handled by script.js automatically -->
                     </div>
                 </div>
 
@@ -104,7 +92,7 @@
                     <div class="card p-6">
                         <h3 class="text-lg font-semibold text-primary mb-4">Change Password</h3>
 
-                        <form action="${pageContext.request.contextPath}/profile/change-password" method="POST">
+                        <form id="passwordForm" action="${pageContext.request.contextPath}/profile/change-password" method="POST">
                             <div class="space-y-4">
                                 <div>
                                     <label for="currentPassword" class="form-label">Current Password</label>
@@ -155,11 +143,19 @@
         <!-- JavaScript for Profile Editing -->
         <script>
             document.addEventListener('DOMContentLoaded', function() {
+                // Check if functions are available
+                if (typeof showConfirmDialog === 'undefined' || typeof showErrorToast === 'undefined') {
+                    console.error('Toast and dialog functions not loaded. Please check script.js');
+                    return;
+                }
+
                 const editBtn = document.getElementById('editBtn');
                 const cancelBtn = document.getElementById('cancelBtn');
                 const formActions = document.getElementById('formActions');
                 const emailInput = document.getElementById('email');
                 const usernameInput = document.getElementById('username');
+                const profileForm = document.getElementById('profileForm');
+                const passwordForm = document.getElementById('passwordForm');
 
                 // Store original values
                 const originalEmail = emailInput.value;
@@ -187,6 +183,82 @@
                     // Hide form actions
                     formActions.classList.add('hidden');
                     editBtn.style.display = 'block';
+                });
+
+                // Profile form submission with confirmation
+                profileForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
+                    try {
+                        const confirmed = await showConfirmDialog(
+                            'Update Profile',
+                            'Are you sure you want to update your profile information?',
+                            {
+                                confirmText: 'Update',
+                                cancelText: 'Cancel',
+                                confirmStyle: 'primary',
+                                icon: 'fas fa-user-edit'
+                            }
+                        );
+
+                        if (confirmed) {
+                            profileForm.submit();
+                        }
+                    } catch (error) {
+                        console.error('Dialog error:', error);
+                        if (confirm('Update Profile?\n\nAre you sure you want to update your profile information?')) {
+                            profileForm.submit();
+                        }
+                    }
+                });
+
+                // Password form submission with confirmation
+                passwordForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
+                    const newPassword = document.getElementById('newPassword').value;
+                    const confirmPassword = document.getElementById('confirmPassword').value;
+
+                    // Client-side validation
+                    if (newPassword !== confirmPassword) {
+                        try {
+                            showErrorToast('Passwords do not match');
+                        } catch (error) {
+                            alert('Passwords do not match');
+                        }
+                        return;
+                    }
+
+                    if (newPassword.length < 4) {
+                        try {
+                            showErrorToast('Password must be at least 4 characters long');
+                        } catch (error) {
+                            alert('Password must be at least 4 characters long');
+                        }
+                        return;
+                    }
+
+                    try {
+                        const confirmed = await showConfirmDialog(
+                            'Change Password',
+                            'Are you sure you want to change your password? You will need to use the new password for future logins.',
+                            {
+                                confirmText: 'Change Password',
+                                cancelText: 'Cancel',
+                                confirmStyle: 'warning',
+                                icon: 'fas fa-key'
+                            }
+                        );
+
+                        if (confirmed) {
+                            passwordForm.submit();
+                        }
+                    } catch (error) {
+                        console.error('Dialog error:', error);
+                        if (confirm('Change Password?\n\nAre you sure you want to change your password?')) {
+                            passwordForm.submit();
+                        }
+                    }
                 });
 
                 // Password confirmation validation

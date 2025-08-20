@@ -62,17 +62,55 @@
 
     <jsp:attribute name="scripts">
         <script>
-            function deleteCustomer(id) {
-                if (confirm('Are you sure you want to delete this customer?')) {
-                    fetch('${pageContext.request.contextPath}/customers/delete/' + id, {
-                        method: 'POST'
-                    }).then(response => {
-                        if (response.ok) {
-                            window.location.reload();
-                        } else {
-                            alert('Failed to delete customer');
+            document.addEventListener('DOMContentLoaded', function() {
+                // Check if functions are available
+                if (typeof showDeleteConfirm === 'undefined' || typeof showSuccessToast === 'undefined') {
+                    console.error('Toast and dialog functions not loaded. Please check script.js');
+                }
+            });
+
+            async function deleteCustomer(id) {
+                try {
+                    const confirmed = await showDeleteConfirm('Customer', 'This will permanently remove the customer and cannot be undone.');
+
+                    if (confirmed) {
+                        try {
+                            const response = await fetch('${pageContext.request.contextPath}/customers/delete/' + id, {
+                                method: 'POST'
+                            });
+
+                            if (response.ok) {
+                                showSuccessToast('Customer deleted successfully');
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 1000);
+                            } else {
+                                showErrorToast('Failed to delete customer. Please try again.');
+                            }
+                        } catch (error) {
+                            console.error('Network error:', error);
+                            showErrorToast('An error occurred while deleting the customer');
                         }
-                    });
+                    }
+                } catch (error) {
+                    console.error('Dialog error:', error);
+                    // Fallback to basic confirm
+                    if (confirm('Delete Customer?\n\nThis will permanently remove the customer and cannot be undone.\n\nAre you sure you want to continue?')) {
+                        try {
+                            const response = await fetch('${pageContext.request.contextPath}/customers/delete/' + id, {
+                                method: 'POST'
+                            });
+
+                            if (response.ok) {
+                                alert('Customer deleted successfully');
+                                window.location.reload();
+                            } else {
+                                alert('Failed to delete customer. Please try again.');
+                            }
+                        } catch (error) {
+                            alert('An error occurred while deleting the customer');
+                        }
+                    }
                 }
             }
         </script>
